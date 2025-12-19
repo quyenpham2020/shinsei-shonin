@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -92,6 +92,16 @@ const LoginPage: React.FC = () => {
               >
                 {isLoading ? 'ログイン中...' : 'ログイン'}
               </Button>
+              <Box sx={{ textAlign: 'center' }}>
+                <Button
+                  component={Link}
+                  to="/forgot-password"
+                  variant="text"
+                  size="small"
+                >
+                  パスワードを忘れた方はこちら
+                </Button>
+              </Box>
             </form>
 
             <Alert severity="info" sx={{ mt: 2 }}>

@@ -20,7 +20,7 @@ interface Application {
 // 申請一覧取得
 export const getApplications = (req: AuthRequest, res: Response): void => {
   try {
-    const { status, type } = req.query;
+    const { status, type, department, startDate, endDate, search } = req.query;
     const user = req.user!;
 
     let query = `
@@ -36,10 +36,27 @@ export const getApplications = (req: AuthRequest, res: Response): void => {
     `;
     const params: (string | number)[] = [];
 
-    // 一般ユーザーは自分の申請のみ、承認者/管理者は全件表示
+    // ロール別のフィルタリング
     if (user.role === 'user') {
+      // 一般ユーザーは自分の申請のみ
       query += ' AND a.applicant_id = ?';
       params.push(user.id);
+    } else if (user.role === 'approver') {
+      // 承認者は担当部署の申請のみ
+      // 承認者が担当する部署名を取得してフィルタリング
+      query += ` AND u1.department IN (
+        SELECT d.name FROM approvers ap
+        JOIN departments d ON ap.department_id = d.id
+        WHERE ap.user_id = ? AND ap.is_active = 1
+      )`;
+      params.push(user.id);
+    }
+    // 管理者は全件表示
+
+    // 部署フィルター（承認者・管理者向け）
+    if (department && department !== 'all') {
+      query += ' AND u1.department = ?';
+      params.push(department as string);
     }
 
     if (status && status !== 'all') {
@@ -50,6 +67,24 @@ export const getApplications = (req: AuthRequest, res: Response): void => {
     if (type && type !== 'all') {
       query += ' AND a.type = ?';
       params.push(type as string);
+    }
+
+    // 期間フィルター
+    if (startDate) {
+      query += ' AND date(a.created_at) >= date(?)';
+      params.push(startDate as string);
+    }
+
+    if (endDate) {
+      query += ' AND date(a.created_at) <= date(?)';
+      params.push(endDate as string);
+    }
+
+    // フリーワード検索（申請ID、件名）
+    if (search) {
+      query += ' AND (a.id LIKE ? OR a.title LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm);
     }
 
     query += ' ORDER BY a.created_at DESC';
@@ -101,27 +136,145 @@ export const getApplication = (req: AuthRequest, res: Response): void => {
   }
 };
 
+// 申請番号生成 (APP-YYYY-NNNNNN)
+const generateApplicationNumber = (): string => {
+  const year = new Date().getFullYear();
+  const prefix = `APP-${year}-`;
+
+  // 今年の申請数を取得
+  const result = getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM applications WHERE application_number LIKE ?`,
+    [`${prefix}%`]
+  );
+
+  const nextNumber = (result?.count || 0) + 1;
+  return `${prefix}${String(nextNumber).padStart(6, '0')}`;
+};
+
 // 新規申請作成
 export const createApplication = (req: AuthRequest, res: Response): void => {
   try {
-    const { title, type, description, amount } = req.body;
+    const { title, type, description, amount, isDraft, departmentId, preferredDate } = req.body;
     const user = req.user!;
 
-    if (!title || !type) {
+    // 下書きの場合はタイトルのみ必須
+    if (!isDraft && (!title || !type)) {
       res.status(400).json({ message: 'タイトルと申請種別は必須です' });
       return;
     }
 
+    // 件名の長さチェック
+    if (title && title.length > 500) {
+      res.status(400).json({ message: '件名は500文字以内で入力してください' });
+      return;
+    }
+
+    // 説明の長さチェック
+    if (description && description.length > 5000) {
+      res.status(400).json({ message: '申請内容は5000文字以内で入力してください' });
+      return;
+    }
+
+    const status = isDraft ? 'draft' : 'pending';
+    const applicationNumber = generateApplicationNumber();
+
+    // 部署ID: 管理者は指定可能、一般ユーザーは自分の部署
+    const finalDepartmentId = user.role === 'admin' && departmentId ? departmentId : null;
+
     const result = runQuery(`
-      INSERT INTO applications (title, type, description, amount, applicant_id)
-      VALUES (?, ?, ?, ?, ?)
-    `, [title, type, description || null, amount || null, user.id]);
+      INSERT INTO applications (application_number, title, type, description, amount, applicant_id, status, department_id, preferred_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [applicationNumber, title || '', type || '', description || null, amount || null, user.id, status, finalDepartmentId, preferredDate || null]);
 
     const newApplication = getOne('SELECT * FROM applications WHERE id = ?', [result.lastInsertRowid]);
 
     res.status(201).json(newApplication);
   } catch (error) {
     console.error('Create application error:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
+// 申請更新（下書き編集）
+export const updateApplication = (req: AuthRequest, res: Response): void => {
+  try {
+    const { id } = req.params;
+    const { title, type, description, amount, isDraft } = req.body;
+    const user = req.user!;
+
+    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+
+    if (!application) {
+      res.status(404).json({ message: '申請が見つかりません' });
+      return;
+    }
+
+    // 自分の申請かつ下書きまたは審査中のみ編集可能
+    if (application.applicant_id !== user.id) {
+      res.status(403).json({ message: '編集権限がありません' });
+      return;
+    }
+
+    if (application.status !== 'draft' && application.status !== 'pending') {
+      res.status(400).json({ message: 'この申請は編集できません' });
+      return;
+    }
+
+    // 提出時はバリデーション
+    if (!isDraft && (!title || !type)) {
+      res.status(400).json({ message: 'タイトルと申請種別は必須です' });
+      return;
+    }
+
+    const newStatus = isDraft ? 'draft' : 'pending';
+
+    runQuery(`
+      UPDATE applications
+      SET title = ?, type = ?, description = ?, amount = ?, status = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `, [title || '', type || '', description || null, amount || null, newStatus, Number(id)]);
+
+    const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+
+    res.json(updatedApplication);
+  } catch (error) {
+    console.error('Update application error:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
+// 下書き削除
+export const deleteApplication = (req: AuthRequest, res: Response): void => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+
+    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+
+    if (!application) {
+      res.status(404).json({ message: '申請が見つかりません' });
+      return;
+    }
+
+    // 自分の下書きのみ削除可能（管理者は全て削除可能）
+    if (application.applicant_id !== user.id && user.role !== 'admin') {
+      res.status(403).json({ message: '削除権限がありません' });
+      return;
+    }
+
+    if (application.status !== 'draft' && user.role !== 'admin') {
+      res.status(400).json({ message: '下書き以外は削除できません' });
+      return;
+    }
+
+    // 添付ファイルも削除
+    runQuery('DELETE FROM attachments WHERE application_id = ?', [Number(id)]);
+    runQuery('DELETE FROM comments WHERE application_id = ?', [Number(id)]);
+    runQuery('DELETE FROM applications WHERE id = ?', [Number(id)]);
+
+    res.json({ message: '申請を削除しました' });
+  } catch (error) {
+    console.error('Delete application error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 };
@@ -189,6 +342,46 @@ export const rejectApplication = (req: AuthRequest, res: Response): void => {
     res.json(updatedApplication);
   } catch (error) {
     console.error('Reject application error:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
+// 申請取り下げ
+export const withdrawApplication = (req: AuthRequest, res: Response): void => {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+
+    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+
+    if (!application) {
+      res.status(404).json({ message: '申請が見つかりません' });
+      return;
+    }
+
+    // 自分の申請のみ取り下げ可能
+    if (application.applicant_id !== user.id) {
+      res.status(403).json({ message: '取り下げ権限がありません' });
+      return;
+    }
+
+    // pending状態のみ取り下げ可能
+    if (application.status !== 'pending') {
+      res.status(400).json({ message: '審査中の申請のみ取り下げ可能です' });
+      return;
+    }
+
+    runQuery(`
+      UPDATE applications
+      SET status = 'draft', updated_at = datetime('now')
+      WHERE id = ?
+    `, [Number(id)]);
+
+    const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+
+    res.json(updatedApplication);
+  } catch (error) {
+    console.error('Withdraw application error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 };

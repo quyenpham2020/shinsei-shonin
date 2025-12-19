@@ -24,7 +24,11 @@ import {
   Description as DescriptionIcon,
   Add as AddIcon,
   People as PeopleIcon,
+  Business as BusinessIcon,
+  SupervisorAccount as SupervisorAccountIcon,
+  Category as CategoryIcon,
   Logout as LogoutIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -62,6 +66,9 @@ const Layout: React.FC = () => {
 
   if (user?.role === 'admin') {
     menuItems.push({ text: 'ユーザー管理', icon: <PeopleIcon />, path: '/users' });
+    menuItems.push({ text: '部署管理', icon: <BusinessIcon />, path: '/departments' });
+    menuItems.push({ text: '承認者管理', icon: <SupervisorAccountIcon />, path: '/approvers' });
+    menuItems.push({ text: '申請種別管理', icon: <CategoryIcon />, path: '/application-types' });
   }
 
   const drawer = (
@@ -133,6 +140,12 @@ const Layout: React.FC = () => {
               </Typography>
             </MenuItem>
             <Divider />
+            <MenuItem onClick={() => { handleMenuClose(); navigate('/change-password'); }}>
+              <ListItemIcon>
+                <LockIcon fontSize="small" />
+              </ListItemIcon>
+              パスワード変更
+            </MenuItem>
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <LogoutIcon fontSize="small" />

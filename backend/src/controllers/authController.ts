@@ -13,6 +13,7 @@ interface User {
   password: string;
   department: string;
   role: string;
+  must_change_password: number;
 }
 
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -48,7 +49,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         role: user.role,
       },
       config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
+      { expiresIn: config.jwtExpiresIn } as jwt.SignOptions
     );
 
     res.json({
@@ -60,6 +61,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         department: user.department,
         role: user.role,
+        mustChangePassword: user.must_change_password === 1,
       },
     });
   } catch (error) {

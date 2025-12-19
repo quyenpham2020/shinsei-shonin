@@ -5,10 +5,12 @@ export interface User {
   email: string;
   department: string;
   role: 'user' | 'approver' | 'admin';
+  mustChangePassword?: boolean;
 }
 
 export interface Application {
   id: number;
+  application_number: string | null;
   title: string;
   type: ApplicationType;
   description: string;
@@ -20,6 +22,8 @@ export interface Application {
   applicant_email?: string;
   approver_id: number | null;
   approver_name: string | null;
+  department_id: number | null;
+  preferred_date: string | null;
   created_at: string;
   updated_at: string;
   approved_at: string | null;
@@ -37,24 +41,18 @@ export interface Comment {
   created_at: string;
 }
 
-export type ApplicationType = 'travel' | 'expense' | 'leave' | 'purchase' | 'other';
-export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
-
-export const APPLICATION_TYPE_LABELS: Record<ApplicationType, string> = {
-  travel: '出張申請',
-  expense: '経費精算',
-  leave: '休暇申請',
-  purchase: '備品購入',
-  other: 'その他',
-};
+export type ApplicationType = string;
+export type ApplicationStatus = 'draft' | 'pending' | 'approved' | 'rejected';
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  draft: '下書き',
   pending: '審査中',
   approved: '承認済',
   rejected: '却下',
 };
 
-export const APPLICATION_STATUS_COLORS: Record<ApplicationStatus, 'warning' | 'success' | 'error'> = {
+export const APPLICATION_STATUS_COLORS: Record<ApplicationStatus, 'default' | 'warning' | 'success' | 'error'> = {
+  draft: 'default',
   pending: 'warning',
   approved: 'success',
   rejected: 'error',

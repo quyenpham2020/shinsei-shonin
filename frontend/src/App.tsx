@@ -9,6 +9,14 @@ import DashboardPage from './pages/DashboardPage';
 import ApplicationListPage from './pages/ApplicationListPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import NewApplicationPage from './pages/NewApplicationPage';
+import UserListPage from './pages/UserListPage';
+import DepartmentListPage from './pages/DepartmentListPage';
+import ApproverListPage from './pages/ApproverListPage';
+import ApplicationTypeListPage from './pages/ApplicationTypeListPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
+import ForcePasswordChangeDialog from './components/ForcePasswordChangeDialog';
 import { CircularProgress, Box } from '@mui/material';
 
 const theme = createTheme({
@@ -38,7 +46,7 @@ const theme = createTheme({
 });
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, clearMustChangePassword } = useAuth();
 
   if (isLoading) {
     return (
@@ -48,7 +56,19 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     );
   }
 
-  return user ? <>{children}</> : <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return (
+    <>
+      {children}
+      <ForcePasswordChangeDialog
+        open={user.mustChangePassword === true}
+        onPasswordChanged={clearMustChangePassword}
+      />
+    </>
+  );
 };
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -77,6 +97,14 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/forgot-password"
+        element={<ForgotPasswordPage />}
+      />
+      <Route
+        path="/reset-password/:token"
+        element={<ResetPasswordPage />}
+      />
+      <Route
         path="/"
         element={
           <PrivateRoute>
@@ -88,6 +116,12 @@ const AppRoutes: React.FC = () => {
         <Route path="applications" element={<ApplicationListPage />} />
         <Route path="applications/new" element={<NewApplicationPage />} />
         <Route path="applications/:id" element={<ApplicationDetailPage />} />
+        <Route path="applications/:id/edit" element={<NewApplicationPage />} />
+        <Route path="users" element={<UserListPage />} />
+        <Route path="departments" element={<DepartmentListPage />} />
+        <Route path="approvers" element={<ApproverListPage />} />
+        <Route path="application-types" element={<ApplicationTypeListPage />} />
+        <Route path="change-password" element={<ChangePasswordPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

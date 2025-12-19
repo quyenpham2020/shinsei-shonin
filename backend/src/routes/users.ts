@@ -1,12 +1,28 @@
 import { Router } from 'express';
-import { getUsers, getApprovers } from '../controllers/userController';
+import {
+  getUsers,
+  getUser,
+  getApprovers,
+  createUser,
+  updateUser,
+  deleteUser,
+  changePassword,
+} from '../controllers/userController';
 import { authenticateToken, requireRole } from '../middlewares/auth';
 
 const router = Router();
 
 router.use(authenticateToken);
 
-router.get('/', requireRole('admin'), getUsers);
+// 承認者一覧（全認証ユーザーがアクセス可能）
 router.get('/approvers', getApprovers);
+
+// 以下は管理者のみ
+router.get('/', requireRole('admin'), getUsers);
+router.get('/:id', requireRole('admin'), getUser);
+router.post('/', requireRole('admin'), createUser);
+router.put('/:id', requireRole('admin'), updateUser);
+router.delete('/:id', requireRole('admin'), deleteUser);
+router.put('/:id/password', requireRole('admin'), changePassword);
 
 export default router;

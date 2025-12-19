@@ -3,8 +3,11 @@ import {
   getApplications,
   getApplication,
   createApplication,
+  updateApplication,
+  deleteApplication,
   approveApplication,
   rejectApplication,
+  withdrawApplication,
   addComment,
 } from '../controllers/applicationController';
 import { authenticateToken, requireRole } from '../middlewares/auth';
@@ -18,8 +21,10 @@ router.use(authenticateToken);
 router.get('/', getApplications);
 router.get('/:id', getApplication);
 
-// 申請作成
+// 申請作成・更新・削除
 router.post('/', createApplication);
+router.put('/:id', updateApplication);
+router.delete('/:id', deleteApplication);
 
 // 承認・却下（承認者・管理者のみ）
 router.post('/:id/approve', requireRole('approver', 'admin'), approveApplication);

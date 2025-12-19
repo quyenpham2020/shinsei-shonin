@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (employeeId: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  clearMustChangePassword: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,8 +48,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const clearMustChangePassword = () => {
+    if (user) {
+      setUser({ ...user, mustChangePassword: false });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, clearMustChangePassword }}>
       {children}
     </AuthContext.Provider>
   );
