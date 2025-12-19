@@ -13,6 +13,9 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  IconButton,
   Avatar,
   CircularProgress,
   Alert,
@@ -21,13 +24,24 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import {
+  ArrowBack as ArrowBackIcon,
+  AttachFile as AttachFileIcon,
+  InsertDriveFile as FileIcon,
+  Image as ImageIcon,
+  PictureAsPdf as PdfIcon,
+  Description as DocIcon,
+  Download as DownloadIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
+import { applicationTypeService, ApplicationType as ApplicationTypeModel } from '../services/applicationTypeService';
+import { attachmentService, Attachment } from '../services/attachmentService';
 import {
   Application,
   APPLICATION_STATUS_LABELS,
-  APPLICATION_TYPE_LABELS,
   APPLICATION_STATUS_COLORS,
 } from '../types';
 
@@ -36,18 +50,28 @@ const ApplicationDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [application, setApplication] = useState<Application | null>(null);
+  const [applicationTypes, setApplicationTypes] = useState<ApplicationTypeModel[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const fetchData = async () => {
       try {
-        const data = await applicationService.getById(Number(id));
-        setApplication(data);
+        const [appData, types, attachs] = await Promise.all([
+          applicationService.getById(Number(id)),
+          applicationTypeService.getAll(),
+          attachmentService.getByApplicationId(Number(id))
+        ]);
+        setApplication(appData);
+        setApplicationTypes(types);
+        setAttachments(attachs);
       } catch (err) {
         console.error('Failed to fetch application:', err);
         setError('申請の取得に失敗しました');
@@ -55,7 +79,7 @@ const ApplicationDetailPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-    fetchApplication();
+    fetchData();
   }, [id]);
 
   const handleApprove = async () => {
@@ -115,7 +139,73 @@ const ApplicationDetailPage: React.FC = () => {
     return `¥${amount.toLocaleString()}`;
   };
 
+  const getTypeLabel = (typeCode: string) => {
+    const appType = applicationTypes.find(t => t.code === typeCode);
+    return appType?.name || typeCode;
+  };
+
   const canApprove = user?.role === 'approver' || user?.role === 'admin';
+  const canEdit = application?.applicant_id === user?.id || user?.role === 'admin';
+
+  // Attachment helpers
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <ImageIcon color="primary" />;
+    if (mimeType === 'application/pdf') return <PdfIcon color="error" />;
+    if (mimeType.includes('word') || mimeType.includes('document')) return <DocIcon color="info" />;
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return <DocIcon color="success" />;
+    return <FileIcon />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDownloadAttachment = async (attachment: Attachment) => {
+    try {
+      await attachmentService.download(attachment.id, attachment.original_name);
+    } catch (err) {
+      console.error('Failed to download attachment:', err);
+      setError('ファイルのダウンロードに失敗しました');
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    if (!confirm('添付ファイルを削除しますか？')) return;
+    try {
+      await attachmentService.delete(attachmentId);
+      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+    } catch (err) {
+      console.error('Failed to delete attachment:', err);
+      setError('添付ファイルの削除に失敗しました');
+    }
+  };
+
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !application) return;
+
+    setIsUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const attachment = await attachmentService.upload(application.id, file);
+        setAttachments((prev) => [...prev, attachment]);
+      }
+    } catch (err) {
+      console.error('Failed to upload attachment:', err);
+      setError('ファイルのアップロードに失敗しました');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -189,7 +279,7 @@ const ApplicationDetailPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary">
                 申請種別
               </Typography>
-              <Typography variant="body1">{APPLICATION_TYPE_LABELS[application.type]}</Typography>
+              <Typography variant="body1">{getTypeLabel(application.type)}</Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
@@ -246,6 +336,87 @@ const ApplicationDetailPage: React.FC = () => {
               </Grid>
             )}
           </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Attachments Section */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              添付ファイル ({attachments.length})
+            </Typography>
+            {canEdit && application.status === 'pending' && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                  accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={isUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
+                  onClick={handleFileSelect}
+                  disabled={isUploading}
+                >
+                  {isUploading ? 'アップロード中...' : 'ファイルを追加'}
+                </Button>
+              </>
+            )}
+          </Box>
+
+          {attachments.length > 0 ? (
+            <List>
+              {attachments.map((attachment) => (
+                <ListItem
+                  key={attachment.id}
+                  sx={{
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                    mb: 1,
+                    '&:hover': { bgcolor: 'grey.100' },
+                  }}
+                >
+                  <ListItemIcon>{getFileIcon(attachment.mime_type)}</ListItemIcon>
+                  <ListItemText
+                    primary={attachment.original_name}
+                    secondary={`${formatFileSize(attachment.size)} • ${attachment.uploader_name || ''}`}
+                  />
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
+                      size="small"
+                      onClick={() => handleDownloadAttachment(attachment)}
+                      title="ダウンロード"
+                    >
+                      <DownloadIcon fontSize="small" />
+                    </IconButton>
+                    {canEdit && application.status === 'pending' && (
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteAttachment(attachment.id)}
+                        title="削除"
+                        sx={{ ml: 1 }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          ) : (
+            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+              添付ファイルはありません
+            </Typography>
+          )}
         </CardContent>
       </Card>
 

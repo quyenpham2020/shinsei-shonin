@@ -5,6 +5,11 @@ import { initDatabase } from './config/database';
 import authRoutes from './routes/auth';
 import applicationRoutes from './routes/applications';
 import userRoutes from './routes/users';
+import departmentRoutes from './routes/departments';
+import approverRoutes from './routes/approvers';
+import applicationTypeRoutes from './routes/applicationTypes';
+import attachmentRoutes from './routes/attachments';
+import passwordRoutes from './routes/password';
 
 const app = express();
 
@@ -16,6 +21,11 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/approvers', approverRoutes);
+app.use('/api/application-types', applicationTypeRoutes);
+app.use('/api', attachmentRoutes);
+app.use('/api/password', passwordRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

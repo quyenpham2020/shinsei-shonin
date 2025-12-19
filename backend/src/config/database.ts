@@ -33,13 +33,32 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
       password TEXT NOT NULL,
       department TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
+      must_change_password INTEGER NOT NULL DEFAULT 0,
+      password_changed_at DATETIME,
+      password_reset_token TEXT,
+      password_reset_expires DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
+  // Add new columns if they don't exist (for existing databases)
+  try {
+    db.run(`ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`);
+  } catch (e) { /* Column may already exist */ }
+  try {
+    db.run(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`);
+  } catch (e) { /* Column may already exist */ }
+  try {
+    db.run(`ALTER TABLE users ADD COLUMN password_reset_token TEXT`);
+  } catch (e) { /* Column may already exist */ }
+  try {
+    db.run(`ALTER TABLE users ADD COLUMN password_reset_expires DATETIME`);
+  } catch (e) { /* Column may already exist */ }
+
   db.run(`
     CREATE TABLE IF NOT EXISTS applications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      application_number TEXT UNIQUE,
       title TEXT NOT NULL,
       type TEXT NOT NULL,
       description TEXT,
@@ -47,14 +66,36 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
       status TEXT NOT NULL DEFAULT 'pending',
       applicant_id INTEGER NOT NULL,
       approver_id INTEGER,
+      department_id INTEGER,
+      preferred_date DATE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       approved_at DATETIME,
       rejection_reason TEXT,
       FOREIGN KEY (applicant_id) REFERENCES users(id),
-      FOREIGN KEY (approver_id) REFERENCES users(id)
+      FOREIGN KEY (approver_id) REFERENCES users(id),
+      FOREIGN KEY (department_id) REFERENCES departments(id)
     )
   `);
+
+  // Helper function to safely add column if it doesn't exist
+  const addColumnIfNotExists = (table: string, column: string, type: string) => {
+    try {
+      const tableInfo = db.exec(`PRAGMA table_info(${table})`);
+      const columns = tableInfo[0]?.values?.map((row: any) => row[1]) || [];
+      if (!columns.includes(column)) {
+        db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+        console.log(`Added column ${column} to ${table}`);
+      }
+    } catch (e) {
+      console.error(`Error adding column ${column} to ${table}:`, e);
+    }
+  };
+
+  // Add new columns to applications if they don't exist
+  addColumnIfNotExists('applications', 'application_number', 'TEXT');
+  addColumnIfNotExists('applications', 'department_id', 'INTEGER');
+  addColumnIfNotExists('applications', 'preferred_date', 'DATE');
 
   db.run(`
     CREATE TABLE IF NOT EXISTS comments (
@@ -65,6 +106,82 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (application_id) REFERENCES applications(id),
       FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS departments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Add is_active column to departments if it doesn't exist
+  try {
+    db.run(`ALTER TABLE departments ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`);
+  } catch (e) { /* Column may already exist */ }
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS approvers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      department_id INTEGER NOT NULL,
+      approval_level INTEGER NOT NULL DEFAULT 1,
+      max_amount REAL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (department_id) REFERENCES departments(id),
+      UNIQUE(user_id, department_id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS application_types (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      requires_amount INTEGER NOT NULL DEFAULT 0,
+      requires_attachment INTEGER NOT NULL DEFAULT 0,
+      approval_levels INTEGER NOT NULL DEFAULT 1,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      application_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      uploaded_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+      FOREIGN KEY (uploaded_by) REFERENCES users(id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      link TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      read_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
