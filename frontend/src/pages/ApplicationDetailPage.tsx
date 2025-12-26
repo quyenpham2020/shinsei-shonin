@@ -34,11 +34,16 @@ import {
   Download as DownloadIcon,
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
+  Add as AddIcon,
+  AccountTree as AccountTreeIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
 import { applicationTypeService, ApplicationType as ApplicationTypeModel } from '../services/applicationTypeService';
 import { attachmentService, Attachment } from '../services/attachmentService';
+import { favoriteService } from '../services/favoriteService';
 import {
   Application,
   APPLICATION_STATUS_LABELS,
@@ -59,6 +64,8 @@ const ApplicationDetailPage: React.FC = () => {
   const [error, setError] = useState('');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [supplementaryDialogOpen, setSupplementaryDialogOpen] = useState(false);
+  const [supplementaryData, setSupplementaryData] = useState({ title: '', description: '', amount: '' });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -72,6 +79,7 @@ const ApplicationDetailPage: React.FC = () => {
         setApplication(appData);
         setApplicationTypes(types);
         setAttachments(attachs);
+
       } catch (err) {
         console.error('Failed to fetch application:', err);
         setError('申請の取得に失敗しました');
@@ -127,6 +135,40 @@ const ApplicationDetailPage: React.FC = () => {
       setError('コメントの追加に失敗しました');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateSupplementary = async () => {
+    if (!application || !supplementaryData.title.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await applicationService.createSupplementary(application.id, {
+        title: supplementaryData.title,
+        description: supplementaryData.description || undefined,
+        amount: supplementaryData.amount ? Number(supplementaryData.amount) : undefined,
+      });
+      const updated = await applicationService.getById(application.id);
+      setApplication(updated);
+      setSupplementaryDialogOpen(false);
+      setSupplementaryData({ title: '', description: '', amount: '' });
+    } catch (err) {
+      console.error('Failed to create supplementary application:', err);
+      setError('補足申請の作成に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!application) return;
+    try {
+      const result = await favoriteService.toggle(application.id);
+      setApplication((prev) =>
+        prev ? { ...prev, is_favorite: result.is_favorite ? 1 : 0 } : null
+      );
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      setError('お気に入りの更新に失敗しました');
     }
   };
 
@@ -228,7 +270,7 @@ const ApplicationDetailPage: React.FC = () => {
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/applications')} sx={{ mb: 2 }}>
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/shinsei/applications')} sx={{ mb: 2 }}>
         一覧に戻る
       </Button>
 
@@ -242,9 +284,18 @@ const ApplicationDetailPage: React.FC = () => {
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                {application.title}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  {application.title}
+                </Typography>
+                <IconButton
+                  onClick={handleToggleFavorite}
+                  sx={{ color: application.is_favorite ? 'warning.main' : 'action.disabled' }}
+                  title={application.is_favorite ? 'お気に入りから削除' : 'お気に入りに追加'}
+                >
+                  {application.is_favorite ? <StarIcon /> : <StarBorderIcon />}
+                </IconButton>
+              </Box>
               <Chip
                 label={APPLICATION_STATUS_LABELS[application.status]}
                 color={APPLICATION_STATUS_COLORS[application.status]}
@@ -285,7 +336,14 @@ const ApplicationDetailPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary">
                 金額
               </Typography>
-              <Typography variant="body1">{formatAmount(application.amount)}</Typography>
+              <Typography variant="body1">
+                {formatAmount(application.amount)}
+                {application.supplementary_applications && application.supplementary_applications.length > 0 && (
+                  <Typography component="span" color="primary" sx={{ ml: 1 }}>
+                    (合計: {formatAmount(application.total_amount || application.amount)})
+                  </Typography>
+                )}
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
@@ -338,6 +396,86 @@ const ApplicationDetailPage: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
+
+      {/* Supplementary Applications Section (補足申請) */}
+      {!application.parent_id && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <AccountTreeIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                補足申請 ({application.supplementary_applications?.length || 0})
+              </Typography>
+              {canEdit && application.status === 'pending' && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => setSupplementaryDialogOpen(true)}
+                >
+                  補足申請を追加
+                </Button>
+              )}
+            </Box>
+
+            {application.supplementary_applications && application.supplementary_applications.length > 0 ? (
+              <List>
+                {application.supplementary_applications.map((supp) => (
+                  <ListItem
+                    key={supp.id}
+                    sx={{
+                      bgcolor: 'grey.50',
+                      borderRadius: 1,
+                      mb: 1,
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: 'grey.100' },
+                    }}
+                    onClick={() => navigate(`/shinsei/applications/${supp.id}`)}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body1">{supp.title}</Typography>
+                          <Chip
+                            label={APPLICATION_STATUS_LABELS[supp.status]}
+                            color={APPLICATION_STATUS_COLORS[supp.status]}
+                            size="small"
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            金額: {formatAmount(supp.amount)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            申請日: {formatDate(supp.created_at)}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                補足申請はありません
+              </Typography>
+            )}
+
+            {application.supplementary_applications && application.supplementary_applications.length > 0 && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  合計金額: {formatAmount(application.total_amount || application.amount)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  (本申請: {formatAmount(application.amount)} + 補足申請: {formatAmount((application.total_amount || 0) - (application.amount || 0))})
+                </Typography>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Attachments Section */}
       <Card sx={{ mb: 3 }}>

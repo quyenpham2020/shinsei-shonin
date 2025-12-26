@@ -176,7 +176,7 @@ const DashboardPage: React.FC = () => {
                     '&:hover': { bgcolor: 'action.hover' },
                     borderRadius: 1,
                   }}
-                  onClick={() => navigate(`/applications/${app.id}`)}
+                  onClick={() => navigate(`/shinsei/applications/${app.id}`)}
                 >
                   <ListItemText
                     primary={app.title}

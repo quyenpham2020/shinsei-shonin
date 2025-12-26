@@ -28,13 +28,15 @@ export const getApplications = (req: AuthRequest, res: Response): void => {
         a.*,
         u1.name as applicant_name,
         u1.department as applicant_department,
-        u2.name as approver_name
+        u2.name as approver_name,
+        CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
       FROM applications a
       LEFT JOIN users u1 ON a.applicant_id = u1.id
       LEFT JOIN users u2 ON a.approver_id = u2.id
+      LEFT JOIN favorites f ON a.id = f.application_id AND f.user_id = ?
       WHERE 1=1
     `;
-    const params: (string | number)[] = [];
+    const params: (string | number)[] = [user.id];
 
     // ロール別のフィルタリング
     if (user.role === 'user') {
@@ -101,19 +103,22 @@ export const getApplications = (req: AuthRequest, res: Response): void => {
 export const getApplication = (req: AuthRequest, res: Response): void => {
   try {
     const { id } = req.params;
+    const user = req.user!;
 
-    const application = getOne(`
+    const application = getOne<Application & { applicant_name: string; applicant_department: string; applicant_email: string; approver_name: string; parent_id: number | null; is_favorite: number }>(`
       SELECT
         a.*,
         u1.name as applicant_name,
         u1.department as applicant_department,
         u1.email as applicant_email,
-        u2.name as approver_name
+        u2.name as approver_name,
+        CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
       FROM applications a
       LEFT JOIN users u1 ON a.applicant_id = u1.id
       LEFT JOIN users u2 ON a.approver_id = u2.id
+      LEFT JOIN favorites f ON a.id = f.application_id AND f.user_id = ?
       WHERE a.id = ?
-    `, [Number(id)]);
+    `, [user.id, Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
@@ -129,7 +134,26 @@ export const getApplication = (req: AuthRequest, res: Response): void => {
       ORDER BY c.created_at ASC
     `, [Number(id)]);
 
-    res.json({ ...application, comments });
+    // 補足申請（子申請）取得
+    const supplementaryApplications = getAll<Application & { applicant_name: string }>(`
+      SELECT a.*, u.name as applicant_name
+      FROM applications a
+      LEFT JOIN users u ON a.applicant_id = u.id
+      WHERE a.parent_id = ?
+      ORDER BY a.created_at ASC
+    `, [Number(id)]);
+
+    // 合計金額計算（親 + 全子申請）
+    const parentAmount = application.amount || 0;
+    const childrenAmount = supplementaryApplications.reduce((sum, child) => sum + (child.amount || 0), 0);
+    const totalAmount = parentAmount + childrenAmount;
+
+    res.json({
+      ...application,
+      comments,
+      supplementary_applications: supplementaryApplications,
+      total_amount: totalAmount,
+    });
   } catch (error) {
     console.error('Get application error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
@@ -420,6 +444,54 @@ export const addComment = (req: AuthRequest, res: Response): void => {
     res.status(201).json(newComment);
   } catch (error) {
     console.error('Add comment error:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
+// 補足申請作成（tờ trình bổ sung）
+export const createSupplementaryApplication = (req: AuthRequest, res: Response): void => {
+  try {
+    const { parentId } = req.params;
+    const { title, description, amount } = req.body;
+    const user = req.user!;
+
+    // 親申請の確認
+    const parentApplication = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(parentId)]);
+
+    if (!parentApplication) {
+      res.status(404).json({ message: '親申請が見つかりません' });
+      return;
+    }
+
+    // 親申請が既に子申請の場合はエラー
+    if ((parentApplication as any).parent_id) {
+      res.status(400).json({ message: '補足申請に対して補足申請は作成できません' });
+      return;
+    }
+
+    // 申請者または管理者のみ補足申請を作成可能
+    if (parentApplication.applicant_id !== user.id && user.role !== 'admin') {
+      res.status(403).json({ message: '補足申請を作成する権限がありません' });
+      return;
+    }
+
+    if (!title) {
+      res.status(400).json({ message: '件名は必須です' });
+      return;
+    }
+
+    const applicationNumber = generateApplicationNumber();
+
+    const result = runQuery(`
+      INSERT INTO applications (application_number, title, type, description, amount, applicant_id, status, parent_id)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+    `, [applicationNumber, title, parentApplication.type, description || null, amount || null, user.id, Number(parentId)]);
+
+    const newApplication = getOne('SELECT * FROM applications WHERE id = ?', [result.lastInsertRowid]);
+
+    res.status(201).json(newApplication);
+  } catch (error) {
+    console.error('Create supplementary application error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 };

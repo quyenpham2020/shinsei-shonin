@@ -45,11 +45,14 @@ import {
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,
   Clear as ClearIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService, ApplicationFilters } from '../services/applicationService';
 import { applicationTypeService, ApplicationType as ApplicationTypeModel } from '../services/applicationTypeService';
 import { departmentService, Department } from '../services/departmentService';
+import { favoriteService } from '../services/favoriteService';
 import {
   Application,
   ApplicationStatus,
@@ -233,7 +236,7 @@ const ApplicationListPage: React.FC = () => {
 
   const handleEditClick = (e: React.MouseEvent, app: Application) => {
     e.stopPropagation();
-    navigate(`/applications/${app.id}/edit`);
+    navigate(`/shinsei/applications/${app.id}/edit`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, app: Application) => {
@@ -285,6 +288,22 @@ const ApplicationListPage: React.FC = () => {
       fetchApplications();
     } catch (error) {
       console.error('Failed to bulk reject:', error);
+    }
+  };
+
+  // Toggle favorite
+  const handleToggleFavorite = async (e: React.MouseEvent, appId: number) => {
+    e.stopPropagation();
+    try {
+      const result = await favoriteService.toggle(appId);
+      // Update local state optimistically
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === appId ? { ...app, is_favorite: result.is_favorite ? 1 : 0 } : app
+        )
+      );
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
     }
   };
 
@@ -613,7 +632,7 @@ const ApplicationListPage: React.FC = () => {
                       hover
                       selected={isItemSelected}
                       sx={{ cursor: 'pointer' }}
-                      onClick={() => navigate(`/applications/${app.id}`)}
+                      onClick={() => navigate(`/shinsei/applications/${app.id}`)}
                     >
                       <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
@@ -642,6 +661,15 @@ const ApplicationListPage: React.FC = () => {
                       </TableCell>
                       <TableCell>{formatDate(app.created_at)}</TableCell>
                       <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                        <Tooltip title={app.is_favorite ? 'お気に入りから削除' : 'お気に入りに追加'}>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleToggleFavorite(e, app.id)}
+                            sx={{ color: app.is_favorite ? 'warning.main' : 'action.disabled' }}
+                          >
+                            {app.is_favorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
                         {canEdit(app) && (
                           <Tooltip title="編集">
                             <IconButton size="small" onClick={(e) => handleEditClick(e, app)}>

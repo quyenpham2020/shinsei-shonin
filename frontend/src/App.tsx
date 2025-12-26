@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
+import PortalPage from './pages/PortalPage';
 import DashboardPage from './pages/DashboardPage';
 import ApplicationListPage from './pages/ApplicationListPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
@@ -16,6 +17,9 @@ import ApplicationTypeListPage from './pages/ApplicationTypeListPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import WeeklyReportPage from './pages/WeeklyReportPage';
+import FavoritesPage from './pages/FavoritesPage';
+import SystemAccessPage from './pages/SystemAccessPage';
 import ForcePasswordChangeDialog from './components/ForcePasswordChangeDialog';
 import { CircularProgress, Box } from '@mui/material';
 
@@ -71,6 +75,36 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   );
 };
 
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading, clearMustChangePassword } = useAuth();
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (user.role !== 'admin') {
+    return <Navigate to="/" />;
+  }
+
+  return (
+    <>
+      {children}
+      <ForcePasswordChangeDialog
+        open={user.mustChangePassword === true}
+        onPasswordChanged={clearMustChangePassword}
+      />
+    </>
+  );
+};
+
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
@@ -88,6 +122,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
+      {/* Public routes */}
       <Route
         path="/login"
         element={
@@ -96,33 +131,76 @@ const AppRoutes: React.FC = () => {
           </PublicRoute>
         }
       />
-      <Route
-        path="/forgot-password"
-        element={<ForgotPasswordPage />}
-      />
-      <Route
-        path="/reset-password/:token"
-        element={<ResetPasswordPage />}
-      />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+      {/* Portal - Main entry point */}
       <Route
         path="/"
         element={
           <PrivateRoute>
-            <Layout />
+            <PortalPage />
+          </PrivateRoute>
+        }
+      />
+
+      {/* 申請承認管理システム */}
+      <Route
+        path="/shinsei"
+        element={
+          <PrivateRoute>
+            <Layout systemId="shinsei-shonin" />
           </PrivateRoute>
         }
       >
         <Route index element={<DashboardPage />} />
         <Route path="applications" element={<ApplicationListPage />} />
+        <Route path="favorites" element={<FavoritesPage />} />
         <Route path="applications/new" element={<NewApplicationPage />} />
         <Route path="applications/:id" element={<ApplicationDetailPage />} />
         <Route path="applications/:id/edit" element={<NewApplicationPage />} />
+        <Route path="application-types" element={<ApplicationTypeListPage />} />
+      </Route>
+
+      {/* 週間報告管理システム */}
+      <Route
+        path="/weekly-reports"
+        element={
+          <PrivateRoute>
+            <Layout systemId="weekly-report" />
+          </PrivateRoute>
+        }
+      >
+        <Route index element={<WeeklyReportPage />} />
+      </Route>
+
+      {/* マスタ管理システム */}
+      <Route
+        path="/master"
+        element={
+          <AdminRoute>
+            <Layout systemId="master-management" />
+          </AdminRoute>
+        }
+      >
+        <Route index element={<UserListPage />} />
         <Route path="users" element={<UserListPage />} />
         <Route path="departments" element={<DepartmentListPage />} />
         <Route path="approvers" element={<ApproverListPage />} />
-        <Route path="application-types" element={<ApplicationTypeListPage />} />
-        <Route path="change-password" element={<ChangePasswordPage />} />
+        <Route path="system-access" element={<SystemAccessPage />} />
       </Route>
+
+      {/* Shared routes */}
+      <Route
+        path="/change-password"
+        element={
+          <PrivateRoute>
+            <ChangePasswordPage />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

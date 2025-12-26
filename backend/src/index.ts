@@ -10,6 +10,11 @@ import approverRoutes from './routes/approvers';
 import applicationTypeRoutes from './routes/applicationTypes';
 import attachmentRoutes from './routes/attachments';
 import passwordRoutes from './routes/password';
+import weeklyReportRoutes from './routes/weeklyReports';
+import favoriteRoutes from './routes/favorites';
+import pageFavoriteRoutes from './routes/pageFavorites';
+import systemAccessRoutes from './routes/systemAccess';
+import { initScheduler } from './services/scheduler';
 
 const app = express();
 
@@ -26,6 +31,10 @@ app.use('/api/approvers', approverRoutes);
 app.use('/api/application-types', applicationTypeRoutes);
 app.use('/api', attachmentRoutes);
 app.use('/api/password', passwordRoutes);
+app.use('/api/weekly-reports', weeklyReportRoutes);
+app.use('/api/favorites', favoriteRoutes);
+app.use('/api/page-favorites', pageFavoriteRoutes);
+app.use('/api/system-access', systemAccessRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -37,6 +46,9 @@ async function start() {
   try {
     await initDatabase();
     console.log('Database initialized');
+
+    // Initialize scheduler for Friday reminders
+    initScheduler();
 
     app.listen(config.port, () => {
       console.log(`Server is running on port ${config.port}`);

@@ -11,6 +11,12 @@ export interface CreateApplicationData {
   preferredDate?: string;
 }
 
+export interface CreateSupplementaryData {
+  title: string;
+  description?: string;
+  amount?: number;
+}
+
 export interface UpdateApplicationData {
   title: string;
   type: string;
@@ -74,6 +80,11 @@ export const applicationService = {
 
   addComment: async (id: number, content: string) => {
     const response = await api.post(`/applications/${id}/comments`, { content });
+    return response.data;
+  },
+
+  createSupplementary: async (parentId: number, data: CreateSupplementaryData) => {
+    const response = await api.post<Application>(`/applications/${parentId}/supplementary`, data);
     return response.data;
   },
 };

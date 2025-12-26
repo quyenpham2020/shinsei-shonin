@@ -185,7 +185,64 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
     )
   `);
 
-  saveDatabase();
+    // Weekly Reports table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS weekly_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      week_start DATE NOT NULL,
+      week_end DATE NOT NULL,
+      content TEXT NOT NULL,
+      achievements TEXT,
+      challenges TEXT,
+      next_week_plan TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, week_start)
+    )
+  `);
+
+  // Favorites table (for applications)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      application_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+      UNIQUE(user_id, application_id)
+    )
+  `);
+
+  // Page Favorites table (for bookmarking any page/URL)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS page_favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      url TEXT NOT NULL,
+      title TEXT NOT NULL,
+      icon TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, url)
+    )
+  `);
+
+  // User System Access table (for managing which users can access which systems)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_system_access (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      system_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, system_id)
+    )
+  `);
+
+saveDatabase();
   return db;
 }
 

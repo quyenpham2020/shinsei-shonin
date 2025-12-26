@@ -24,11 +24,15 @@ export interface Application {
   approver_name: string | null;
   department_id: number | null;
   preferred_date: string | null;
+  parent_id: number | null;
   created_at: string;
   updated_at: string;
   approved_at: string | null;
   rejection_reason: string | null;
   comments?: Comment[];
+  supplementary_applications?: Application[];
+  total_amount?: number;
+  is_favorite?: number;
 }
 
 export interface Comment {

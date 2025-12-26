@@ -126,7 +126,10 @@ const NewApplicationPage: React.FC = () => {
         setApplicationTypes(types);
         setDepartments(depts);
         if (types.length > 0 && !id) {
-          setFormData((prev) => ({ ...prev, type: types[0].code }));
+          const firstType = types[0];
+          const today = dayjs().format('YYYY-MM-DD');
+          const titlePrefix = `${today}_${firstType.name}_`;
+          setFormData((prev) => ({ ...prev, type: firstType.code, title: titlePrefix }));
         }
       } catch (err) {
         console.error('Failed to fetch initial data:', err);
@@ -219,8 +222,29 @@ const NewApplicationPage: React.FC = () => {
     return !Object.values(newErrors).some((e) => e !== undefined);
   };
 
+  // Generate title prefix based on today's date and application type
+  const generateTitlePrefix = (typeCode: string): string => {
+    const today = dayjs().format('YYYY-MM-DD');
+    const appType = applicationTypes.find((t) => t.code === typeCode);
+    const typeName = appType?.name || '';
+    return `${today}_${typeName}_`;
+  };
+
   const handleChange = (field: keyof CreateApplicationData, value: string | number | undefined) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+
+      // Auto-update title prefix when type changes (only for new applications)
+      if (field === 'type' && !isEditMode && typeof value === 'string') {
+        const prefix = generateTitlePrefix(value);
+        // Only update if title is empty or starts with a date pattern (auto-generated)
+        if (!prev.title || /^\d{4}-\d{2}-\d{2}_/.test(prev.title)) {
+          newData.title = prefix;
+        }
+      }
+
+      return newData;
+    });
     // Real-time validation
     const error = validateField(field, value);
     setErrors((prev) => ({ ...prev, [field]: error }));
@@ -254,16 +278,16 @@ const NewApplicationPage: React.FC = () => {
         setApplicationId(newApp.id);
 
         if (!asDraft) {
-          navigate(`/applications/${newApp.id}`);
+          navigate(`/shinsei/applications/${newApp.id}`);
           return;
         }
       }
 
       if (asDraft) {
         setIsDraft(true);
-        navigate('/applications');
+        navigate('/shinsei/applications');
       } else {
-        navigate(`/applications/${applicationId || id}`);
+        navigate(`/shinsei/applications/${applicationId || id}`);
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '申請の作成に失敗しました';

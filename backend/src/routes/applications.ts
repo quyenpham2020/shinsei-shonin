@@ -9,6 +9,7 @@ import {
   rejectApplication,
   withdrawApplication,
   addComment,
+  createSupplementaryApplication,
 } from '../controllers/applicationController';
 import { authenticateToken, requireRole } from '../middlewares/auth';
 
@@ -32,5 +33,8 @@ router.post('/:id/reject', requireRole('approver', 'admin'), rejectApplication);
 
 // コメント追加
 router.post('/:id/comments', addComment);
+
+// 補足申請作成
+router.post('/:parentId/supplementary', createSupplementaryApplication);
 
 export default router;
