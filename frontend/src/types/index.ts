@@ -1,4 +1,4 @@
-import i18n from 'i18next';
+import i18n from '../i18n/config';
 
 export type UserRole = 'user' | 'approver' | 'onsite_leader' | 'gm' | 'bod' | 'admin';
 

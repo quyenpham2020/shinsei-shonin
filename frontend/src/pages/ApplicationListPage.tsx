@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -67,6 +68,7 @@ const ApplicationListPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Data state
   const [applications, setApplications] = useState<Application[]>([]);
@@ -313,16 +315,16 @@ const ApplicationListPage: React.FC = () => {
     try {
       const exportData = sortedApplications.map((app) => ({
         ID: app.id,
-        タイトル: app.title,
-        種別: getTypeLabel(app.type),
-        申請者: app.applicant_name,
-        部署: app.applicant_department,
-        金額: app.amount || '',
-        ステータス: APPLICATION_STATUS_LABELS[app.status],
-        申請日: formatDate(app.created_at),
-        更新日: formatDate(app.updated_at),
-        承認者: app.approver_name || '',
-        却下理由: app.rejection_reason || '',
+        [t('application:fields.title')]: app.title,
+        [t('application:fields.type')]: getTypeLabel(app.type),
+        [t('application:fields.applicant')]: app.applicant_name,
+        [t('application:fields.department')]: app.applicant_department,
+        [t('application:fields.amount')]: app.amount || '',
+        [t('application:fields.status')]: t(`application:status.${app.status}`),
+        [t('application:fields.createdAt')]: formatDate(app.created_at),
+        [t('common:fields.updatedAt')]: formatDate(app.updated_at),
+        [t('application:fields.approver')]: app.approver_name || '',
+        [t('common:fields.rejectionReason')]: app.rejection_reason || '',
       }));
 
       const headers = Object.keys(exportData[0] || {});
@@ -654,7 +656,7 @@ const ApplicationListPage: React.FC = () => {
                       <TableCell align="right">{formatAmount(app.amount)}</TableCell>
                       <TableCell>
                         <Chip
-                          label={APPLICATION_STATUS_LABELS[app.status]}
+                          label={t(`application:status.${app.status}`)}
                           color={APPLICATION_STATUS_COLORS[app.status]}
                           size="small"
                         />

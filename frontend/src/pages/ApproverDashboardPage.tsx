@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -43,6 +44,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 const ApproverDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [applications, setApplications] = useState<Application[]>([]);
   const [applicationTypes, setApplicationTypes] = useState<ApplicationTypeModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -294,7 +296,7 @@ const ApproverDashboardPage: React.FC = () => {
                     secondary={`${getTypeLabel(app.type)} - ${app.applicant_name} (${app.applicant_department})`}
                   />
                   <Chip
-                    label={APPLICATION_STATUS_LABELS[app.status]}
+                    label={t(`application:status.${app.status}`)}
                     color={APPLICATION_STATUS_COLORS[app.status]}
                     size="small"
                   />

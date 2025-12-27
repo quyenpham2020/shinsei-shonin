@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -29,6 +30,7 @@ import AdminDashboardPage from './AdminDashboardPage';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Show admin dashboard for admins
   if (user?.role === 'admin') {
@@ -183,7 +185,7 @@ const DashboardPage: React.FC = () => {
                     secondary={`${getTypeLabel(app.type)} - ${app.applicant_name} (${app.applicant_department})`}
                   />
                   <Chip
-                    label={APPLICATION_STATUS_LABELS[app.status]}
+                    label={t(`application:status.${app.status}`)}
                     color={APPLICATION_STATUS_COLORS[app.status]}
                     size="small"
                   />

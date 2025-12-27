@@ -102,6 +102,10 @@
     "required": "必須",
     "optional": "任意"
   },
+  "fields": {
+    "updatedAt": "更新日時",
+    "rejectionReason": "却下理由"
+  },
   "pagination": {
     "rowsPerPage": "行/ページ",
     "displayedRows": "{{from}}-{{to}} / {{count}}"

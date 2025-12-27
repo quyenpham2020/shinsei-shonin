@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -54,6 +55,7 @@ const ApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [application, setApplication] = useState<Application | null>(null);
   const [applicationTypes, setApplicationTypes] = useState<ApplicationTypeModel[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -297,7 +299,7 @@ const ApplicationDetailPage: React.FC = () => {
                 </IconButton>
               </Box>
               <Chip
-                label={APPLICATION_STATUS_LABELS[application.status]}
+                label={t(`application:status.${application.status}`)}
                 color={APPLICATION_STATUS_COLORS[application.status]}
               />
             </Box>
@@ -309,7 +311,7 @@ const ApplicationDetailPage: React.FC = () => {
                   onClick={handleApprove}
                   disabled={isSubmitting}
                 >
-                  承認
+                  {t('application:actions.approve')}
                 </Button>
                 <Button
                   variant="contained"
@@ -317,7 +319,7 @@ const ApplicationDetailPage: React.FC = () => {
                   onClick={() => setRejectDialogOpen(true)}
                   disabled={isSubmitting}
                 >
-                  却下
+                  {t('application:actions.reject')}
                 </Button>
               </Box>
             )}
@@ -437,7 +439,7 @@ const ApplicationDetailPage: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography variant="body1">{supp.title}</Typography>
                           <Chip
-                            label={APPLICATION_STATUS_LABELS[supp.status]}
+                            label={t(`application:status.${supp.status}`)}
                             color={APPLICATION_STATUS_COLORS[supp.status]}
                             size="small"
                           />
@@ -446,10 +448,10 @@ const ApplicationDetailPage: React.FC = () => {
                       secondary={
                         <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
                           <Typography variant="body2" color="text.secondary">
-                            金額: {formatAmount(supp.amount)}
+                            {t('application:fields.amount')}: {formatAmount(supp.amount)}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            申請日: {formatDate(supp.created_at)}
+                            {t('application:fields.createdAt')}: {formatDate(supp.created_at)}
                           </Typography>
                         </Box>
                       }

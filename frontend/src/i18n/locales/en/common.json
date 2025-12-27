@@ -102,6 +102,10 @@
     "required": "Required",
     "optional": "Optional"
   },
+  "fields": {
+    "updatedAt": "Updated At",
+    "rejectionReason": "Rejection Reason"
+  },
   "pagination": {
     "rowsPerPage": "Rows per page",
     "displayedRows": "{{from}}-{{to}} of {{count}}"

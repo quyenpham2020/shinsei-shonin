@@ -102,6 +102,10 @@
     "required": "Bắt buộc",
     "optional": "Tùy chọn"
   },
+  "fields": {
+    "updatedAt": "Ngày cập nhật",
+    "rejectionReason": "Lý do từ chối"
+  },
   "pagination": {
     "rowsPerPage": "Dòng/trang",
     "displayedRows": "{{from}}-{{to}} / {{count}}"
