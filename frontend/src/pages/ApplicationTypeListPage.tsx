@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -55,6 +56,7 @@ const initialFormData: ApplicationTypeFormData = {
 };
 
 const ApplicationTypeListPage: React.FC = () => {
+  const { t } = useTranslation();
   const [applicationTypes, setApplicationTypes] = useState<ApplicationType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

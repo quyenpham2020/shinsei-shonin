@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -79,6 +80,7 @@ interface UserWithExempt extends User {
 }
 
 const UserListPage: React.FC = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<UserWithExempt[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
