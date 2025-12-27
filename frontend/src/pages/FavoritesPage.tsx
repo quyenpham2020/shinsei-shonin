@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -30,6 +31,7 @@ import {
 } from '../types';
 
 const FavoritesPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [applicationTypes, setApplicationTypes] = useState<ApplicationTypeModel[]>([]);
