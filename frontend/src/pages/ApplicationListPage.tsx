@@ -395,9 +395,9 @@ const ApplicationListPage: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/applications/new')}
+            onClick={() => navigate('/shinsei/applications/new')}
           >
-            新規申請
+            {t('common:nav.newApplication')}
           </Button>
         </Box>
       </Box>
