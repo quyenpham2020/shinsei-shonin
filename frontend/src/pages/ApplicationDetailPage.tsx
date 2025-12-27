@@ -526,25 +526,27 @@ const ApplicationDetailPage: React.FC = () => {
                     secondary={`${formatFileSize(attachment.size)} • ${attachment.uploader_name || ''}`}
                   />
                   <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      size="small"
-                      onClick={() => handleDownloadAttachment(attachment)}
-                      title="ダウンロード"
-                    >
-                      <DownloadIcon fontSize="small" />
-                    </IconButton>
-                    {canEdit && application.status === 'pending' && (
+                    <Tooltip title={t('common:tooltips.download')}>
                       <IconButton
                         edge="end"
                         size="small"
-                        color="error"
-                        onClick={() => handleDeleteAttachment(attachment.id)}
-                        title="削除"
-                        sx={{ ml: 1 }}
+                        onClick={() => handleDownloadAttachment(attachment)}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <DownloadIcon fontSize="small" />
                       </IconButton>
+                    </Tooltip>
+                    {canEdit && application.status === 'pending' && (
+                      <Tooltip title={t('common:tooltips.delete')}>
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteAttachment(attachment.id)}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     )}
                   </ListItemSecondaryAction>
                 </ListItem>

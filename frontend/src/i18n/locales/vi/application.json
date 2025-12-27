@@ -1,0 +1,39 @@
+{
+  "title": "Đơn",
+  "list": "Danh sách đơn",
+  "new": "Đơn mới",
+  "detail": "Chi tiết đơn",
+  "edit": "Sửa đơn",
+  "fields": {
+    "title": "Tiêu đề",
+    "type": "Loại",
+    "description": "Mô tả",
+    "amount": "Số tiền",
+    "status": "Trạng thái",
+    "applicant": "Người nộp",
+    "approver": "Người phê duyệt",
+    "department": "Phòng ban",
+    "createdAt": "Ngày tạo",
+    "approvedAt": "Ngày phê duyệt"
+  },
+  "status": {
+    "draft": "Bản nháp",
+    "pending": "Chờ xử lý",
+    "approved": "Đã phê duyệt",
+    "rejected": "Từ chối"
+  },
+  "actions": {
+    "approve": "Phê duyệt",
+    "reject": "Từ chối",
+    "saveDraft": "Lưu nháp",
+    "submit": "Nộp đơn"
+  },
+  "messages": {
+    "created": "Đã tạo đơn",
+    "updated": "Đã cập nhật đơn",
+    "deleted": "Đã xóa đơn",
+    "approved": "Đã phê duyệt đơn",
+    "rejected": "Đã từ chối đơn",
+    "notFound": "Không tìm thấy đơn"
+  }
+}

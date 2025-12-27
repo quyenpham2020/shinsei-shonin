@@ -1,0 +1,39 @@
+{
+  "title": "申請",
+  "list": "申請一覧",
+  "new": "新規申請",
+  "detail": "申請詳細",
+  "edit": "申請編集",
+  "fields": {
+    "title": "件名",
+    "type": "申請種別",
+    "description": "申請内容",
+    "amount": "金額",
+    "status": "ステータス",
+    "applicant": "申請者",
+    "approver": "承認者",
+    "department": "部署",
+    "createdAt": "申請日時",
+    "approvedAt": "承認日時"
+  },
+  "status": {
+    "draft": "下書き",
+    "pending": "審査中",
+    "approved": "承認済",
+    "rejected": "却下"
+  },
+  "actions": {
+    "approve": "承認",
+    "reject": "却下",
+    "saveDraft": "下書き保存",
+    "submit": "申請する"
+  },
+  "messages": {
+    "created": "申請を作成しました",
+    "updated": "申請を更新しました",
+    "deleted": "申請を削除しました",
+    "approved": "申請を承認しました",
+    "rejected": "申請を却下しました",
+    "notFound": "申請が見つかりません"
+  }
+}

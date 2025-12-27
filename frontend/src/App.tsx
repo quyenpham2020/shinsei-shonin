@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import './i18n/config';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import PortalPage from './pages/PortalPage';
@@ -20,6 +21,13 @@ import ChangePasswordPage from './pages/ChangePasswordPage';
 import WeeklyReportPage from './pages/WeeklyReportPage';
 import FavoritesPage from './pages/FavoritesPage';
 import SystemAccessPage from './pages/SystemAccessPage';
+import TeamManagementPage from './pages/TeamManagementPage';
+import FeedbackPage from './pages/FeedbackPage';
+import FeedbackManagementPage from './pages/FeedbackManagementPage';
+import SystemSettingsPage from './pages/SystemSettingsPage';
+import CustomerListPage from './pages/CustomerListPage';
+import RevenueManagementPage from './pages/RevenueManagementPage';
+import RevenueStatsPage from './pages/RevenueStatsPage';
 import ForcePasswordChangeDialog from './components/ForcePasswordChangeDialog';
 import { CircularProgress, Box } from '@mui/material';
 
@@ -188,6 +196,12 @@ const AppRoutes: React.FC = () => {
         <Route path="departments" element={<DepartmentListPage />} />
         <Route path="approvers" element={<ApproverListPage />} />
         <Route path="system-access" element={<SystemAccessPage />} />
+        <Route path="teams" element={<TeamManagementPage />} />
+        <Route path="feedback" element={<FeedbackManagementPage />} />
+        <Route path="settings" element={<SystemSettingsPage />} />
+        <Route path="customers" element={<CustomerListPage />} />
+        <Route path="revenue" element={<RevenueManagementPage />} />
+        <Route path="revenue-stats" element={<RevenueStatsPage />} />
       </Route>
 
       {/* Shared routes */}
@@ -196,6 +210,14 @@ const AppRoutes: React.FC = () => {
         element={
           <PrivateRoute>
             <ChangePasswordPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/feedback"
+        element={
+          <PrivateRoute>
+            <FeedbackPage />
           </PrivateRoute>
         }
       />

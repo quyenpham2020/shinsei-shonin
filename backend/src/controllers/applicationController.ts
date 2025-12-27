@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { getOne, getAll, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
+import { getUsersUnderAuthority } from '../services/permissionService';
 
 interface Application {
   id: number;
@@ -18,7 +19,7 @@ interface Application {
 }
 
 // 申請一覧取得
-export const getApplications = (req: AuthRequest, res: Response): void => {
+export const getApplications = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status, type, department, startDate, endDate, search } = req.query;
     const user = req.user!;
@@ -52,8 +53,20 @@ export const getApplications = (req: AuthRequest, res: Response): void => {
         WHERE ap.user_id = ? AND ap.is_active = 1
       )`;
       params.push(user.id);
+    } else if (user.role === 'onsite_leader') {
+      // Onsite leader sees applications from their team members only
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (allowedUserIds.length === 0) {
+        res.json([]);
+        return;
+      }
+
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      query += ` AND a.applicant_id IN (${placeholders})`;
+      params.push(...allowedUserIds);
     }
-    // 管理者は全件表示
+    // GM, BOD, 管理者は全件表示 (no additional filtering)
 
     // 部署フィルター（承認者・管理者向け）
     if (department && department !== 'all') {
@@ -100,7 +113,7 @@ export const getApplications = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請詳細取得
-export const getApplication = (req: AuthRequest, res: Response): void => {
+export const getApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
@@ -123,6 +136,16 @@ export const getApplication = (req: AuthRequest, res: Response): void => {
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
       return;
+    }
+
+    // Check access for onsite_leader
+    if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (!allowedUserIds.includes(application.applicant_id)) {
+        res.status(403).json({ message: '権限がありません' });
+        return;
+      }
     }
 
     // コメント取得

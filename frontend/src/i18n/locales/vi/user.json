@@ -1,0 +1,25 @@
+{
+  "title": "Quản lý người dùng",
+  "fields": {
+    "employeeId": "Mã nhân viên",
+    "name": "Tên",
+    "email": "Email",
+    "department": "Phòng ban",
+    "role": "Vai trò",
+    "weeklyReportExempt": "Miễn báo cáo tuần",
+    "createdAt": "Ngày tạo"
+  },
+  "actions": {
+    "addUser": "Thêm người dùng",
+    "editUser": "Sửa người dùng",
+    "deleteUser": "Xóa người dùng"
+  },
+  "messages": {
+    "created": "Đã tạo người dùng",
+    "updated": "Đã cập nhật người dùng",
+    "deleted": "Đã xóa người dùng",
+    "notFound": "Không tìm thấy người dùng",
+    "duplicateEmployeeId": "Mã nhân viên này đã được sử dụng",
+    "duplicateEmail": "Email này đã được sử dụng"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "title": "Revenue Management",
+  "customerManagement": "Customer Management",
+  "revenueManagement": "Revenue Management",
+  "statistics": "Statistics & Analytics",
+  "customer": {
+    "name": "Customer Name",
+    "description": "Description",
+    "teams": "Assigned Teams",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "unassigned": "Unassigned",
+    "addCustomer": "Add Customer",
+    "editCustomer": "Edit Customer",
+    "deleteCustomer": "Delete Customer"
+  },
+  "revenue": {
+    "yearMonth": "Year/Month",
+    "customer": "Customer",
+    "mmOnsite": "MM (Onsite)",
+    "mmOffshore": "MM (Offshore)",
+    "unitPrice": "Unit Price",
+    "totalAmount": "Total Amount",
+    "notes": "Notes",
+    "totalMM": "Total MM",
+    "addRevenue": "Add Revenue Data",
+    "editRevenue": "Edit Revenue Data",
+    "deleteRevenue": "Delete Revenue Data"
+  },
+  "fields": {
+    "year": "Year",
+    "month": "Month",
+    "selectCustomer": "Select Customer"
+  },
+  "messages": {
+    "confirmDelete": "Are you sure you want to delete?",
+    "confirmDeleteRevenue": "Are you sure you want to delete this revenue record?",
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully"
+  },
+  "stats": {
+    "title": "Revenue Statistics & Analytics",
+    "totalRevenue": "Total Revenue",
+    "totalMM": "Total MM",
+    "avgUnitPrice": "Avg Unit Price",
+    "customerCount": "Customer Count",
+    "monthlyTrend": "Monthly Revenue Trend",
+    "forecastIncluded": "Forecast Included",
+    "revenueByCustomer": "Revenue by Customer",
+    "customerFilter": "Customer Filter",
+    "allCustomers": "All Customers",
+    "systemStatistics": "System Statistics",
+    "revenue": "Revenue",
+    "6months": "6 Months",
+    "12months": "12 Months",
+    "24months": "24 Months",
+    "yearOverYear": "Year-over-Year Comparison",
+    "quarterlyComparison": "Quarterly Comparison"
+  }
+}

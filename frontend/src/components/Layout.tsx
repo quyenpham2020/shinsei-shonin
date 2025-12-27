@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AppBar,
   Box,
@@ -41,10 +42,17 @@ import {
   BookmarkAdded as BookmarkAddedIcon,
   Bookmarks as BookmarksIcon,
   Security as SecurityIcon,
+  Groups as GroupsIcon,
+  Feedback as FeedbackIcon,
+  Settings as SettingsIcon,
+  AccountBalance as AccountBalanceIcon,
+  TrendingUp as TrendingUpIcon,
+  BarChart as BarChartIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { getSystemById, SystemConfig } from '../config/systems';
 import { pageFavoriteService, PageFavorite } from '../services/pageFavoriteService';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const drawerWidth = 240;
 
@@ -59,25 +67,31 @@ interface MenuItemConfig {
   adminOnly?: boolean;
 }
 
-const getMenuItems = (systemId: string, basePath: string): MenuItemConfig[] => {
+const getMenuItems = (systemId: string, basePath: string, t: (key: string) => string): MenuItemConfig[] => {
   switch (systemId) {
     case 'shinsei-shonin':
       return [
-        { text: 'ダッシュボード', icon: <DashboardIcon />, path: basePath },
-        { text: '申請一覧', icon: <DescriptionIcon />, path: basePath + '/applications' },
-        { text: '新規申請', icon: <AddIcon />, path: basePath + '/applications/new' },
-        { text: '申請種別管理', icon: <CategoryIcon />, path: basePath + '/application-types', adminOnly: true },
+        { text: t('common:nav.dashboard'), icon: <DashboardIcon />, path: basePath },
+        { text: t('common:nav.applications'), icon: <DescriptionIcon />, path: basePath + '/applications' },
+        { text: t('common:nav.newApplication'), icon: <AddIcon />, path: basePath + '/applications/new' },
+        { text: t('common:nav.applicationTypes'), icon: <CategoryIcon />, path: basePath + '/application-types', adminOnly: true },
       ];
     case 'weekly-report':
       return [
-        { text: '週次報告', icon: <AssessmentIcon />, path: basePath },
+        { text: t('common:nav.weeklyReport'), icon: <AssessmentIcon />, path: basePath },
       ];
     case 'master-management':
       return [
-        { text: 'ユーザー管理', icon: <PeopleIcon />, path: basePath },
-        { text: '部署管理', icon: <BusinessIcon />, path: basePath + '/departments' },
-        { text: '承認者管理', icon: <SupervisorAccountIcon />, path: basePath + '/approvers' },
-        { text: 'システムアクセス', icon: <SecurityIcon />, path: basePath + '/system-access' },
+        { text: t('common:nav.userManagement'), icon: <PeopleIcon />, path: basePath },
+        { text: t('common:nav.departmentManagement'), icon: <BusinessIcon />, path: basePath + '/departments' },
+        { text: t('common:nav.teamManagement'), icon: <GroupsIcon />, path: basePath + '/teams' },
+        { text: t('common:nav.approverManagement'), icon: <SupervisorAccountIcon />, path: basePath + '/approvers' },
+        { text: t('common:nav.systemAccess'), icon: <SecurityIcon />, path: basePath + '/system-access' },
+        { text: t('common:nav.customerManagement'), icon: <AccountBalanceIcon />, path: basePath + '/customers' },
+        { text: t('common:nav.revenueManagement'), icon: <TrendingUpIcon />, path: basePath + '/revenue' },
+        { text: t('common:nav.revenueStats'), icon: <BarChartIcon />, path: basePath + '/revenue-stats' },
+        { text: t('common:nav.feedbackManagement'), icon: <FeedbackIcon />, path: basePath + '/feedback' },
+        { text: t('common:nav.systemSettings'), icon: <SettingsIcon />, path: basePath + '/settings' },
       ];
     default:
       return [];
@@ -88,6 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [favoritesAnchorEl, setFavoritesAnchorEl] = useState<null | HTMLElement>(null);
@@ -97,7 +112,7 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
 
   const system: SystemConfig | undefined = getSystemById(systemId);
   const basePath = system?.path || '/';
-  const allMenuItems = getMenuItems(systemId, basePath);
+  const allMenuItems = getMenuItems(systemId, basePath, t);
   const menuItems = allMenuItems.filter(item => !item.adminOnly || user?.role === 'admin');
 
   // Get current page title from menu items or path
@@ -110,12 +125,12 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
       const parts = location.pathname.split('/');
       const id = parts[parts.length - 1];
       if (parts[parts.length - 1] === 'edit') {
-        return `申請編集 #${parts[parts.length - 2]}`;
+        return `${t('common:applicationEdit')} #${parts[parts.length - 2]}`;
       }
-      return `申請詳細 #${id}`;
+      return `${t('common:applicationDetail')} #${id}`;
     }
 
-    return system?.name || 'ページ';
+    return system?.name || t('common:page');
   };
 
   // Fetch favorites
@@ -202,10 +217,10 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
           size="small"
           sx={{ mb: 1, color: 'text.secondary' }}
         >
-          ポータルへ戻る
+          {t('common:backToPortal')}
         </Button>
         <Typography variant="subtitle1" noWrap component="div" sx={{ fontWeight: 700 }}>
-          {system?.name || 'システム'}
+          {system?.name || t('common:system')}
         </Typography>
       </Toolbar>
       <Divider />
@@ -255,7 +270,7 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {/* Add/Remove current page from favorites */}
-            <Tooltip title={isCurrentPageFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}>
+            <Tooltip title={isCurrentPageFavorite ? t('common:removeFromFavorites') : t('common:addToFavorites')}>
               <IconButton
                 color="inherit"
                 onClick={handleToggleCurrentPageFavorite}
@@ -264,7 +279,7 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
               </IconButton>
             </Tooltip>
             {/* My Favorites dropdown */}
-            <Tooltip title="マイお気に入り">
+            <Tooltip title={t('common:myFavorites')}>
               <IconButton
                 color="inherit"
                 onClick={handleFavoritesClick}
@@ -274,6 +289,8 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
                 </Badge>
               </IconButton>
             </Tooltip>
+            {/* Language Switcher */}
+            <LanguageSwitcher />
             <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, ml: 1 }}>
               {user?.name} ({user?.department})
             </Typography>
@@ -300,19 +317,19 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
               <ListItemIcon>
                 <HomeIcon fontSize="small" />
               </ListItemIcon>
-              ポータルへ戻る
+              {t('common:backToPortal')}
             </MenuItem>
             <MenuItem onClick={() => { handleMenuClose(); navigate('/change-password'); }}>
               <ListItemIcon>
                 <LockIcon fontSize="small" />
               </ListItemIcon>
-              パスワード変更
+              {t('common:changePassword')}
             </MenuItem>
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <LogoutIcon fontSize="small" />
               </ListItemIcon>
-              ログアウト
+              {t('common:logout')}
             </MenuItem>
           </Menu>
           {/* Favorites Menu */}
@@ -329,19 +346,19 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
             <MenuItem disabled>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                 <BookmarksIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 18, color: 'primary.main' }} />
-                マイお気に入り ({favorites.length})
+                {t('common:myFavorites')} ({favorites.length})
               </Typography>
             </MenuItem>
             <Divider />
             {favoritesLoading ? (
               <MenuItem disabled>
                 <CircularProgress size={20} sx={{ mr: 1 }} />
-                読み込み中...
+                {t('common:app.loading')}
               </MenuItem>
             ) : favorites.length === 0 ? (
               <MenuItem disabled>
                 <Typography variant="body2" color="text.secondary">
-                  お気に入りはありません
+                  {t('common:noFavorites')}
                 </Typography>
               </MenuItem>
             ) : (

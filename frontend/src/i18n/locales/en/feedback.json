@@ -1,0 +1,34 @@
+{
+  "title": "Feedback",
+  "management": "Feedback Management",
+  "submit": "Submit New Feedback",
+  "history": "Submission History",
+  "fields": {
+    "category": "Category",
+    "subject": "Subject",
+    "content": "Content",
+    "status": "Status",
+    "adminResponse": "Admin Response",
+    "submittedAt": "Submitted At",
+    "respondedAt": "Responded At"
+  },
+  "categories": {
+    "feature_request": "Feature Request",
+    "bug_report": "Bug Report",
+    "improvement": "Improvement Suggestion",
+    "question": "Question",
+    "other": "Other"
+  },
+  "status": {
+    "pending": "Pending",
+    "responded": "Responded",
+    "closed": "Closed"
+  },
+  "messages": {
+    "submitted": "Feedback submitted successfully",
+    "updated": "Feedback updated successfully",
+    "deleted": "Feedback deleted successfully",
+    "noFeedback": "You haven't submitted any feedback yet",
+    "disabled": "The feedback feature is currently disabled. Please contact your administrator."
+  }
+}

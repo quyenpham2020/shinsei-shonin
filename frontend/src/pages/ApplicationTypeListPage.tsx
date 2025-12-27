@@ -275,21 +275,23 @@ const ApplicationTypeListPage: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditOpen(appType)}
-                      title="編集"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteOpen(appType)}
-                      title="削除"
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <Tooltip title={t('common:tooltips.edit')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditOpen(appType)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t('common:tooltips.delete')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteOpen(appType)}
+                        color="error"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}

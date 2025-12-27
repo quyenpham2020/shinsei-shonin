@@ -1,0 +1,22 @@
+{
+  "required": "{{field}} is required",
+  "maxLength": "{{field}} must be at most {{max}} characters",
+  "minLength": "{{field}} must be at least {{min}} characters",
+  "email": "Please enter a valid email address",
+  "number": "Please enter a number",
+  "positive": "Please enter a positive number",
+  "fields": {
+    "title": "Title",
+    "subject": "Subject",
+    "content": "Content",
+    "description": "Description",
+    "email": "Email",
+    "password": "Password",
+    "employeeId": "Employee ID",
+    "name": "Name",
+    "department": "Department",
+    "category": "Category",
+    "type": "Type",
+    "amount": "Amount"
+  }
+}

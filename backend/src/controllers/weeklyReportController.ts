@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { getOne, getAll, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
+import { getUsersUnderAuthority } from '../services/permissionService';
 
 interface WeeklyReport {
   id: number;
@@ -45,7 +46,7 @@ export const getMyReports = (req: AuthRequest, res: Response): void => {
   }
 };
 
-export const getDepartmentReports = (req: AuthRequest, res: Response): void => {
+export const getDepartmentReports = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     const { weekStart, weekEnd } = req.query;
@@ -59,6 +60,17 @@ export const getDepartmentReports = (req: AuthRequest, res: Response): void => {
     if (user.role === 'approver') {
       query += ` AND u.department IN (SELECT d.name FROM approvers ap JOIN departments d ON ap.department_id = d.id WHERE ap.user_id = ? AND ap.is_active = 1)`;
       params.push(user.id);
+    } else if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (allowedUserIds.length === 0) {
+        res.json([]);
+        return;
+      }
+
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      query += ` AND wr.user_id IN (${placeholders})`;
+      params.push(...allowedUserIds);
     }
     if (weekStart) { query += ' AND wr.week_start >= ?'; params.push(weekStart as string); }
     if (weekEnd) { query += ' AND wr.week_start <= ?'; params.push(weekEnd as string); }
@@ -159,16 +171,27 @@ export const deleteReport = (req: AuthRequest, res: Response): void => {
   }
 };
 
-export const getPendingReportUsers = (req: AuthRequest, res: Response): void => {
+export const getPendingReportUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     if (user.role === 'user') { res.status(403).json({ message: '権限がありません' }); return; }
     const currentWeek = getWeekDates();
-    let query = `SELECT u.id, u.employee_id, u.name, u.email, u.department FROM users u WHERE u.id NOT IN (SELECT user_id FROM weekly_reports WHERE week_start = ?)`;
+    let query = `SELECT u.id, u.employee_id, u.name, u.email, u.department FROM users u WHERE u.id NOT IN (SELECT user_id FROM weekly_reports WHERE week_start = ?) AND (u.weekly_report_exempt IS NULL OR u.weekly_report_exempt = 0)`;
     const params: (string | number)[] = [currentWeek.weekStart];
     if (user.role === 'approver') {
       query += ` AND u.department IN (SELECT d.name FROM approvers ap JOIN departments d ON ap.department_id = d.id WHERE ap.user_id = ? AND ap.is_active = 1)`;
       params.push(user.id);
+    } else if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (allowedUserIds.length === 0) {
+        res.json({ weekStart: currentWeek.weekStart, weekEnd: currentWeek.weekEnd, pendingUsers: [] });
+        return;
+      }
+
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      query += ` AND u.id IN (${placeholders})`;
+      params.push(...allowedUserIds);
     }
     query += ' ORDER BY u.department, u.name';
     res.json({ weekStart: currentWeek.weekStart, weekEnd: currentWeek.weekEnd, pendingUsers: getAll(query, params) });
@@ -178,7 +201,7 @@ export const getPendingReportUsers = (req: AuthRequest, res: Response): void => 
   }
 };
 
-export const getAllMembersWithReports = (req: AuthRequest, res: Response): void => {
+export const getAllMembersWithReports = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     if (user.role === 'user') { res.status(403).json({ message: '権限がありません' }); return; }
@@ -191,7 +214,7 @@ export const getAllMembersWithReports = (req: AuthRequest, res: Response): void 
         wr.next_week_plan, wr.week_start, wr.week_end, wr.updated_at
       FROM users u
       LEFT JOIN weekly_reports wr ON u.id = wr.user_id AND wr.week_start = ?
-      WHERE 1=1
+      WHERE (u.weekly_report_exempt IS NULL OR u.weekly_report_exempt = 0)
     `;
     const params: (string | number)[] = [currentWeek.weekStart];
 
@@ -202,6 +225,21 @@ export const getAllMembersWithReports = (req: AuthRequest, res: Response): void 
         WHERE ap.user_id = ? AND ap.is_active = 1
       )`;
       params.push(user.id);
+    } else if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (allowedUserIds.length === 0) {
+        res.json({
+          weekStart: currentWeek.weekStart,
+          weekEnd: currentWeek.weekEnd,
+          members: []
+        });
+        return;
+      }
+
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      query += ` AND u.id IN (${placeholders})`;
+      params.push(...allowedUserIds);
     }
     query += ' ORDER BY u.department, u.name';
 
@@ -218,7 +256,7 @@ export const getAllMembersWithReports = (req: AuthRequest, res: Response): void 
 };
 
 // Get members with reports for the last 3 weeks (for leader view)
-export const getMembersReportsLast3Weeks = (req: AuthRequest, res: Response): void => {
+export const getMembersReportsLast3Weeks = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     if (user.role === 'user') { res.status(403).json({ message: '権限がありません' }); return; }
@@ -231,8 +269,8 @@ export const getMembersReportsLast3Weeks = (req: AuthRequest, res: Response): vo
       weeks.push(getWeekDates(date));
     }
 
-    // Get all members based on role
-    let membersQuery = `SELECT id, employee_id, name, email, department FROM users WHERE 1=1`;
+    // Get all members based on role (exclude weekly report exempt users)
+    let membersQuery = `SELECT id, employee_id, name, email, department FROM users WHERE (weekly_report_exempt IS NULL OR weekly_report_exempt = 0)`;
     const membersParams: (string | number)[] = [];
 
     if (user.role === 'approver') {
@@ -242,6 +280,20 @@ export const getMembersReportsLast3Weeks = (req: AuthRequest, res: Response): vo
         WHERE ap.user_id = ? AND ap.is_active = 1
       )`;
       membersParams.push(user.id);
+    } else if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (allowedUserIds.length === 0) {
+        res.json({
+          weeks,
+          members: []
+        });
+        return;
+      }
+
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      membersQuery += ` AND id IN (${placeholders})`;
+      membersParams.push(...allowedUserIds);
     }
     membersQuery += ' ORDER BY department, name';
 
@@ -305,7 +357,7 @@ export const getMembersReportsLast3Weeks = (req: AuthRequest, res: Response): vo
 };
 
 // Get all reports for a specific member
-export const getMemberReports = (req: AuthRequest, res: Response): void => {
+export const getMemberReports = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     const { userId } = req.params;
@@ -339,6 +391,16 @@ export const getMemberReports = (req: AuthRequest, res: Response): void => {
       `, [user.id, member.department]);
 
       if (!hasAccess) {
+        res.status(403).json({ message: '権限がありません' });
+        return;
+      }
+    }
+
+    // Check if onsite_leader has access to this team member
+    if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (!allowedUserIds.includes(targetUserId)) {
         res.status(403).json({ message: '権限がありません' });
         return;
       }

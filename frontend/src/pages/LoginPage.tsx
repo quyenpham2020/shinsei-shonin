@@ -11,6 +11,7 @@ import {
   Container,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const LoginPage: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -19,6 +20,7 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +31,7 @@ const LoginPage: React.FC = () => {
       await login(employeeId, password);
       navigate('/');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'ログインに失敗しました';
+      const errorMessage = err instanceof Error ? err.message : t('auth:loginFailed');
       setError(
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message || errorMessage
       );
@@ -51,10 +53,10 @@ const LoginPage: React.FC = () => {
         <Card sx={{ width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontWeight: 700 }}>
-              申請・承認管理
+              {t('auth:title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-              社員IDとパスワードを入力してください
+              {t('auth:subtitle')}
             </Typography>
 
             {error && (
@@ -66,7 +68,7 @@ const LoginPage: React.FC = () => {
             <form onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="社員ID"
+                label={t('auth:employeeId')}
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
                 margin="normal"
@@ -75,7 +77,7 @@ const LoginPage: React.FC = () => {
               />
               <TextField
                 fullWidth
-                label="パスワード"
+                label={t('auth:password')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -90,7 +92,7 @@ const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 sx={{ mt: 3, mb: 2 }}
               >
-                {isLoading ? 'ログイン中...' : 'ログイン'}
+                {isLoading ? t('auth:loggingIn') : t('auth:login')}
               </Button>
               <Box sx={{ textAlign: 'center' }}>
                 <Button
@@ -99,17 +101,14 @@ const LoginPage: React.FC = () => {
                   variant="text"
                   size="small"
                 >
-                  パスワードを忘れた方はこちら
+                  {t('auth:forgotPassword')}
                 </Button>
               </Box>
             </form>
 
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                <strong>デモ用アカウント:</strong><br />
-                一般ユーザー: EMP001 / password123<br />
-                承認者: EMP002 / password123<br />
-                管理者: EMP003 / password123
+                {t('auth:contactForAccount')}
               </Typography>
             </Alert>
           </CardContent>

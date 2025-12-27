@@ -226,21 +226,23 @@ const DepartmentListPage: React.FC = () => {
                   <TableCell>{dept.description || '-'}</TableCell>
                   <TableCell>{formatDate(dept.created_at)}</TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditOpen(dept)}
-                      title="編集"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteOpen(dept)}
-                      title="削除"
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <Tooltip title={t('common:tooltips.edit')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditOpen(dept)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t('common:tooltips.delete')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteOpen(dept)}
+                        color="error"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}

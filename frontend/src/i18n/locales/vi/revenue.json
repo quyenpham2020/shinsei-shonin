@@ -1,0 +1,61 @@
+{
+  "title": "Quản lý doanh thu",
+  "customerManagement": "Quản lý khách hàng",
+  "revenueManagement": "Quản lý doanh thu",
+  "statistics": "Thống kê & Phân tích",
+  "customer": {
+    "name": "Tên khách hàng",
+    "description": "Mô tả",
+    "teams": "Nhóm phụ trách",
+    "status": "Trạng thái",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "unassigned": "Chưa phân công",
+    "addCustomer": "Thêm khách hàng",
+    "editCustomer": "Sửa khách hàng",
+    "deleteCustomer": "Xóa khách hàng"
+  },
+  "revenue": {
+    "yearMonth": "Năm/Tháng",
+    "customer": "Khách hàng",
+    "mmOnsite": "MM (Onsite)",
+    "mmOffshore": "MM (Offshore)",
+    "unitPrice": "Đơn giá",
+    "totalAmount": "Tổng tiền",
+    "notes": "Ghi chú",
+    "totalMM": "Tổng MM",
+    "addRevenue": "Thêm dữ liệu doanh thu",
+    "editRevenue": "Sửa dữ liệu doanh thu",
+    "deleteRevenue": "Xóa dữ liệu doanh thu"
+  },
+  "fields": {
+    "year": "Năm",
+    "month": "Tháng",
+    "selectCustomer": "Chọn khách hàng"
+  },
+  "messages": {
+    "confirmDelete": "Bạn có chắc chắn muốn xóa?",
+    "confirmDeleteRevenue": "Bạn có chắc chắn muốn xóa bản ghi doanh thu này?",
+    "saveSuccess": "Đã lưu thành công",
+    "deleteSuccess": "Đã xóa thành công"
+  },
+  "stats": {
+    "title": "Thống kê & Phân tích Doanh thu",
+    "totalRevenue": "Tổng doanh thu",
+    "totalMM": "Tổng MM",
+    "avgUnitPrice": "Đơn giá trung bình",
+    "customerCount": "Số lượng khách hàng",
+    "monthlyTrend": "Xu hướng doanh thu hàng tháng",
+    "forecastIncluded": "Bao gồm dự báo",
+    "revenueByCustomer": "Doanh thu theo khách hàng",
+    "customerFilter": "Lọc khách hàng",
+    "allCustomers": "Tất cả khách hàng",
+    "systemStatistics": "Thống kê hệ thống",
+    "revenue": "Doanh thu",
+    "6months": "6 Tháng",
+    "12months": "12 Tháng",
+    "24months": "24 Tháng",
+    "yearOverYear": "So sánh cùng kỳ năm trước",
+    "quarterlyComparison": "So sánh theo quý"
+  }
+}

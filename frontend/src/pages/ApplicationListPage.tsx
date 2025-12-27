@@ -671,14 +671,14 @@ const ApplicationListPage: React.FC = () => {
                           </IconButton>
                         </Tooltip>
                         {canEdit(app) && (
-                          <Tooltip title="編集">
+                          <Tooltip title={t('common:tooltips.edit')}>
                             <IconButton size="small" onClick={(e) => handleEditClick(e, app)}>
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
                         {canDelete(app) && (
-                          <Tooltip title="削除">
+                          <Tooltip title={t('common:tooltips.delete')}>
                             <IconButton size="small" color="error" onClick={(e) => handleDeleteClick(e, app)}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>

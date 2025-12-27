@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config/env';
 import { initDatabase } from './config/database';
+import { i18nMiddleware } from './middlewares/i18n';
 import authRoutes from './routes/auth';
 import applicationRoutes from './routes/applications';
 import userRoutes from './routes/users';
@@ -14,6 +15,11 @@ import weeklyReportRoutes from './routes/weeklyReports';
 import favoriteRoutes from './routes/favorites';
 import pageFavoriteRoutes from './routes/pageFavorites';
 import systemAccessRoutes from './routes/systemAccess';
+import teamRoutes from './routes/teams';
+import feedbackRoutes from './routes/feedback';
+import settingsRoutes from './routes/settings';
+import customerRoutes from './routes/customers';
+import revenueRoutes from './routes/revenue';
 import { initScheduler } from './services/scheduler';
 
 const app = express();
@@ -21,6 +27,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(i18nMiddleware);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -35,10 +42,15 @@ app.use('/api/weekly-reports', weeklyReportRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/page-favorites', pageFavoriteRoutes);
 app.use('/api/system-access', systemAccessRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/revenue', revenueRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: '申請・承認管理システム API' });
+  res.json({ status: 'ok', message: req.__('resources.application') + ' API' });
 });
 
 // Initialize database and start server

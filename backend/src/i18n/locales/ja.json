@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "serverError": "サーバーエラーが発生しました",
+    "unauthorized": "認証が必要です",
+    "forbidden": "権限がありません",
+    "notFound": "見つかりません",
+    "invalidCredentials": "社員IDまたはパスワードが正しくありません",
+    "invalidEmail": "メールアドレスが正しくありません",
+    "emailNotFound": "メールアドレスが見つかりません",
+    "invalidToken": "トークンが無効または期限切れです",
+    "tokenExpired": "トークンの有効期限が切れています",
+    "passwordMismatch": "現在のパスワードが正しくありません",
+    "duplicateEmployeeId": "この社員IDは既に使用されています",
+    "duplicateEmail": "このメールアドレスは既に使用されています",
+    "cannotDeleteSelf": "自分自身を削除することはできません",
+    "validation": {
+      "required": "{{field}}は必須です",
+      "invalid": "{{field}}が無効です",
+      "tooLong": "{{field}}が長すぎます",
+      "tooShort": "{{field}}が短すぎます",
+      "credentials": "社員IDとパスワード"
+    }
+  },
+  "success": {
+    "created": "{{resource}}を作成しました",
+    "updated": "{{resource}}を更新しました",
+    "deleted": "{{resource}}を削除しました",
+    "passwordReset": "パスワードをリセットしました",
+    "emailSent": "メールを送信しました"
+  },
+  "resources": {
+    "user": "ユーザー",
+    "application": "申請",
+    "department": "部署",
+    "approver": "承認者",
+    "applicationType": "申請種別",
+    "weeklyReport": "週報",
+    "systemAccess": "システムアクセス",
+    "team": "チーム",
+    "feedback": "フィードバック",
+    "customer": "顧客",
+    "revenue": "売上レコード"
+  },
+  "feedback": {
+    "disabled": "フィードバック機能は現在無効になっています"
+  }
+}

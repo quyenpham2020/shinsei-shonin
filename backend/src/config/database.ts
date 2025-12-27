@@ -242,6 +242,113 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
     )
   `);
 
+  // Teams table (small teams within departments, led by onsite leaders)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      department_id INTEGER NOT NULL,
+      leader_id INTEGER,
+      description TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+      FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Add team_id column to users table for team membership
+  addColumnIfNotExists('users', 'team_id', 'INTEGER');
+
+  // Add department_id column to users table for proper foreign key relationship
+  addColumnIfNotExists('users', 'department_id', 'INTEGER');
+
+  // Add weekly_report_exempt column (user doesn't need to submit weekly reports)
+  addColumnIfNotExists('users', 'weekly_report_exempt', 'INTEGER DEFAULT 0');
+
+  // System settings table for feature toggles
+  db.run(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setting_key TEXT UNIQUE NOT NULL,
+      setting_value TEXT NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Feedback submissions table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      admin_response TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      responded_at DATETIME,
+      responded_by INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (responded_by) REFERENCES users(id)
+    )
+  `);
+
+  // Insert default system settings if they don't exist
+  const feedbackSettingExists = db.exec(`SELECT 1 FROM system_settings WHERE setting_key = 'feedback_enabled'`);
+  if (!feedbackSettingExists || feedbackSettingExists.length === 0) {
+    db.run(`INSERT INTO system_settings (setting_key, setting_value, description) VALUES ('feedback_enabled', '1', 'Enable/disable feedback system')`);
+  }
+
+  // Customers table for revenue management
+  db.run(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Customer-Team mapping for access control
+  db.run(`
+    CREATE TABLE IF NOT EXISTS customer_teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      team_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+      FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+      UNIQUE(customer_id, team_id)
+    )
+  `);
+
+  // Revenue records table - monthly revenue data
+  db.run(`
+    CREATE TABLE IF NOT EXISTS revenue_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      mm_onsite REAL NOT NULL DEFAULT 0,
+      mm_offshore REAL NOT NULL DEFAULT 0,
+      unit_price REAL NOT NULL DEFAULT 0,
+      total_amount REAL NOT NULL DEFAULT 0,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_by INTEGER,
+      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id),
+      UNIQUE(customer_id, year, month)
+    )
+  `);
+
 saveDatabase();
   return db;
 }

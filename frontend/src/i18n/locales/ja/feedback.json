@@ -1,0 +1,34 @@
+{
+  "title": "フィードバック",
+  "management": "フィードバック管理",
+  "submit": "新しいフィードバックを送信",
+  "history": "送信履歴",
+  "fields": {
+    "category": "カテゴリ",
+    "subject": "件名",
+    "content": "内容",
+    "status": "ステータス",
+    "adminResponse": "管理者からの回答",
+    "submittedAt": "送信日時",
+    "respondedAt": "回答日時"
+  },
+  "categories": {
+    "feature_request": "新機能のリクエスト",
+    "bug_report": "バグ報告",
+    "improvement": "改善提案",
+    "question": "質問",
+    "other": "その他"
+  },
+  "status": {
+    "pending": "未対応",
+    "responded": "対応済み",
+    "closed": "クローズ"
+  },
+  "messages": {
+    "submitted": "フィードバックを送信しました",
+    "updated": "フィードバックを更新しました",
+    "deleted": "フィードバックを削除しました",
+    "noFeedback": "まだフィードバックを送信していません",
+    "disabled": "フィードバック機能は現在無効になっています。管理者にお問い合わせください。"
+  }
+}

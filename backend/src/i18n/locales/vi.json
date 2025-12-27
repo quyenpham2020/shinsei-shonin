@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "serverError": "Đã xảy ra lỗi máy chủ",
+    "unauthorized": "Yêu cầu xác thực",
+    "forbidden": "Bạn không có quyền truy cập",
+    "notFound": "Không tìm thấy",
+    "invalidCredentials": "Mã nhân viên hoặc mật khẩu không đúng",
+    "invalidEmail": "Địa chỉ email không hợp lệ",
+    "emailNotFound": "Không tìm thấy địa chỉ email",
+    "invalidToken": "Token không hợp lệ hoặc đã hết hạn",
+    "tokenExpired": "Token đã hết hạn",
+    "passwordMismatch": "Mật khẩu hiện tại không đúng",
+    "duplicateEmployeeId": "Mã nhân viên này đã được sử dụng",
+    "duplicateEmail": "Địa chỉ email này đã được sử dụng",
+    "cannotDeleteSelf": "Bạn không thể xóa chính mình",
+    "validation": {
+      "required": "{{field}} là bắt buộc",
+      "invalid": "{{field}} không hợp lệ",
+      "tooLong": "{{field}} quá dài",
+      "tooShort": "{{field}} quá ngắn",
+      "credentials": "Mã nhân viên và mật khẩu"
+    }
+  },
+  "success": {
+    "created": "Đã tạo {{resource}} thành công",
+    "updated": "Đã cập nhật {{resource}} thành công",
+    "deleted": "Đã xóa {{resource}} thành công",
+    "passwordReset": "Đã đặt lại mật khẩu",
+    "emailSent": "Đã gửi email thành công"
+  },
+  "resources": {
+    "user": "Người dùng",
+    "application": "Đơn",
+    "department": "Phòng ban",
+    "approver": "Người phê duyệt",
+    "applicationType": "Loại đơn",
+    "weeklyReport": "Báo cáo tuần",
+    "systemAccess": "Truy cập hệ thống",
+    "team": "Nhóm",
+    "feedback": "Phản hồi",
+    "customer": "Khách hàng",
+    "revenue": "Bản ghi doanh thu"
+  },
+  "feedback": {
+    "disabled": "Tính năng phản hồi hiện đang bị tắt"
+  }
+}

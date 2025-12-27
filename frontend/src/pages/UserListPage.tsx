@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -26,26 +26,31 @@ import {
   MenuItem,
   Alert,
   Snackbar,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  FormControlLabel,
+  Switch,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   VpnKey as KeyIcon,
+  ExpandMore as ExpandMoreIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material';
 import { userService, CreateUserData, UpdateUserData } from '../services/userService';
 import { departmentService, Department } from '../services/departmentService';
-import { User } from '../types';
+import { User, ROLE_LABELS, UserRole } from '../types';
 
-const ROLE_LABELS: Record<string, string> = {
-  user: '一般ユーザー',
-  approver: '承認者',
-  admin: '管理者',
-};
-
-const ROLE_COLORS: Record<string, 'default' | 'primary' | 'secondary'> = {
+const ROLE_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success'> = {
   user: 'default',
   approver: 'primary',
+  onsite_leader: 'info',
+  gm: 'warning',
+  bod: 'error',
   admin: 'secondary',
 };
 
@@ -55,7 +60,8 @@ interface UserFormData {
   email: string;
   password: string;
   department: string;
-  role: 'user' | 'approver' | 'admin';
+  role: UserRole;
+  weeklyReportExempt: boolean;
 }
 
 const initialFormData: UserFormData = {
@@ -65,30 +71,52 @@ const initialFormData: UserFormData = {
   password: '',
   department: '',
   role: 'user',
+  weeklyReportExempt: false,
 };
 
+interface UserWithExempt extends User {
+  weekly_report_exempt?: number;
+}
+
 const UserListPage: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserWithExempt[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [expandedDepts, setExpandedDepts] = useState<string[]>([]);
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithExempt | null>(null);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Group users by department
+  const usersByDepartment = useMemo(() => {
+    const grouped: Record<string, UserWithExempt[]> = {};
+    users.forEach(user => {
+      const dept = user.department || '未所属';
+      if (!grouped[dept]) {
+        grouped[dept] = [];
+      }
+      grouped[dept].push(user);
+    });
+    return grouped;
+  }, [users]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
       const data = await userService.getAll();
       setUsers(data);
+      // Expand all departments by default
+      const depts = [...new Set(data.map((u: any) => u.department || '未所属'))];
+      setExpandedDepts(depts);
     } catch (err) {
       console.error('Failed to fetch users:', err);
       setError('ユーザー一覧の取得に失敗しました');
@@ -110,6 +138,12 @@ const UserListPage: React.FC = () => {
     fetchUsers();
     fetchDepartments();
   }, []);
+
+  const handleAccordionChange = (dept: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedDepts(prev =>
+      isExpanded ? [...prev, dept] : prev.filter(d => d !== dept)
+    );
+  };
 
   const handleCreateOpen = () => {
     setFormData(initialFormData);
@@ -146,7 +180,7 @@ const UserListPage: React.FC = () => {
     }
   };
 
-  const handleEditOpen = (user: User) => {
+  const handleEditOpen = (user: UserWithExempt) => {
     setSelectedUser(user);
     setFormData({
       employeeId: user.employeeId,
@@ -155,6 +189,7 @@ const UserListPage: React.FC = () => {
       password: '',
       department: user.department,
       role: user.role,
+      weeklyReportExempt: user.weekly_report_exempt === 1,
     });
     setEditDialogOpen(true);
   };
@@ -175,6 +210,7 @@ const UserListPage: React.FC = () => {
         email: formData.email,
         department: formData.department,
         role: formData.role,
+        weeklyReportExempt: formData.weeklyReportExempt,
       };
       await userService.update(selectedUser.id, updateData);
       setSuccessMessage('ユーザー情報を更新しました');
@@ -190,7 +226,7 @@ const UserListPage: React.FC = () => {
     }
   };
 
-  const handleDeleteOpen = (user: User) => {
+  const handleDeleteOpen = (user: UserWithExempt) => {
     setSelectedUser(user);
     setDeleteDialogOpen(true);
   };
@@ -218,7 +254,7 @@ const UserListPage: React.FC = () => {
     }
   };
 
-  const handlePasswordOpen = (user: User) => {
+  const handlePasswordOpen = (user: UserWithExempt) => {
     setSelectedUser(user);
     setNewPassword('');
     setPasswordDialogOpen(true);
@@ -247,9 +283,11 @@ const UserListPage: React.FC = () => {
     }
   };
 
-  const handleFormChange = (field: keyof UserFormData, value: string) => {
+  const handleFormChange = (field: keyof UserFormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const isAdminUser = (user: UserWithExempt) => user.role === 'admin';
 
   return (
     <Box>
@@ -275,61 +313,102 @@ const UserListPage: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>社員ID</TableCell>
-                <TableCell>氏名</TableCell>
-                <TableCell>メールアドレス</TableCell>
-                <TableCell>部署</TableCell>
-                <TableCell>ロール</TableCell>
-                <TableCell align="center">操作</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id} hover>
-                  <TableCell>{user.employeeId}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.department}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={ROLE_LABELS[user.role]}
-                      color={ROLE_COLORS[user.role]}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditOpen(user)}
-                      title="編集"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handlePasswordOpen(user)}
-                      title="パスワード変更"
-                    >
-                      <KeyIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteOpen(user)}
-                      title="削除"
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box>
+          {Object.entries(usersByDepartment).map(([dept, deptUsers]) => (
+            <Accordion
+              key={dept}
+              expanded={expandedDepts.includes(dept)}
+              onChange={handleAccordionChange(dept)}
+              sx={{ mb: 1 }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BusinessIcon color="primary" />
+                  <Typography sx={{ fontWeight: 600 }}>{dept}</Typography>
+                  <Chip label={`${deptUsers.length}名`} size="small" />
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>社員ID</TableCell>
+                        <TableCell>氏名</TableCell>
+                        <TableCell>メールアドレス</TableCell>
+                        <TableCell>ロール</TableCell>
+                        <TableCell>週報免除</TableCell>
+                        <TableCell align="center">操作</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {deptUsers.map((user) => (
+                        <TableRow key={user.id} hover>
+                          <TableCell>{user.employeeId}</TableCell>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={ROLE_LABELS[user.role] || user.role}
+                              color={ROLE_COLORS[user.role] || 'default'}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {user.weekly_report_exempt === 1 && (
+                              <Chip label="免除" size="small" color="info" variant="outlined" />
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title={t('common:tooltips.edit')}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditOpen(user)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title={t('common:tooltips.changePassword')}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handlePasswordOpen(user)}
+                              >
+                                <KeyIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {isAdminUser(user) ? (
+                              <Tooltip title={t('common:tooltips.cannotDeleteAdmin')}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    disabled
+                                    color="error"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip title={t('common:tooltips.delete')}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDeleteOpen(user)}
+                                  color="error"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
       )}
 
       {/* Create User Dialog */}
@@ -387,10 +466,13 @@ const UserListPage: React.FC = () => {
               <Select
                 value={formData.role}
                 label="ロール"
-                onChange={(e) => handleFormChange('role', e.target.value as 'user' | 'approver' | 'admin')}
+                onChange={(e) => handleFormChange('role', e.target.value)}
               >
                 <MenuItem value="user">一般ユーザー</MenuItem>
                 <MenuItem value="approver">承認者</MenuItem>
+                <MenuItem value="onsite_leader">オンサイトリーダー</MenuItem>
+                <MenuItem value="gm">GM（部門長）</MenuItem>
+                <MenuItem value="bod">BOD（取締役）</MenuItem>
                 <MenuItem value="admin">管理者</MenuItem>
               </Select>
             </FormControl>
@@ -454,13 +536,25 @@ const UserListPage: React.FC = () => {
               <Select
                 value={formData.role}
                 label="ロール"
-                onChange={(e) => handleFormChange('role', e.target.value as 'user' | 'approver' | 'admin')}
+                onChange={(e) => handleFormChange('role', e.target.value)}
               >
                 <MenuItem value="user">一般ユーザー</MenuItem>
                 <MenuItem value="approver">承認者</MenuItem>
+                <MenuItem value="onsite_leader">オンサイトリーダー</MenuItem>
+                <MenuItem value="gm">GM（部門長）</MenuItem>
+                <MenuItem value="bod">BOD（取締役）</MenuItem>
                 <MenuItem value="admin">管理者</MenuItem>
               </Select>
             </FormControl>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.weeklyReportExempt}
+                  onChange={(e) => handleFormChange('weeklyReportExempt', e.target.checked)}
+                />
+              }
+              label="週報提出を免除する"
+            />
           </Box>
         </DialogContent>
         <DialogActions>

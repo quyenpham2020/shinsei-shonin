@@ -1,0 +1,39 @@
+{
+  "title": "Application",
+  "list": "Applications",
+  "new": "New Application",
+  "detail": "Application Details",
+  "edit": "Edit Application",
+  "fields": {
+    "title": "Title",
+    "type": "Type",
+    "description": "Description",
+    "amount": "Amount",
+    "status": "Status",
+    "applicant": "Applicant",
+    "approver": "Approver",
+    "department": "Department",
+    "createdAt": "Created At",
+    "approvedAt": "Approved At"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "actions": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "saveDraft": "Save Draft",
+    "submit": "Submit"
+  },
+  "messages": {
+    "created": "Application created",
+    "updated": "Application updated",
+    "deleted": "Application deleted",
+    "approved": "Application approved",
+    "rejected": "Application rejected",
+    "notFound": "Application not found"
+  }
+}

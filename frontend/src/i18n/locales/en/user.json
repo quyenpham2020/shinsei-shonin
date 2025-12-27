@@ -1,0 +1,25 @@
+{
+  "title": "User Management",
+  "fields": {
+    "employeeId": "Employee ID",
+    "name": "Name",
+    "email": "Email",
+    "department": "Department",
+    "role": "Role",
+    "weeklyReportExempt": "Exempt from Weekly Reports",
+    "createdAt": "Created At"
+  },
+  "actions": {
+    "addUser": "Add User",
+    "editUser": "Edit User",
+    "deleteUser": "Delete User"
+  },
+  "messages": {
+    "created": "User created",
+    "updated": "User updated",
+    "deleted": "User deleted",
+    "notFound": "User not found",
+    "duplicateEmployeeId": "This Employee ID is already in use",
+    "duplicateEmail": "This email address is already in use"
+  }
+}

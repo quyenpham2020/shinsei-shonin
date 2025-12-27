@@ -21,21 +21,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { employeeId, password } = req.body;
 
     if (!employeeId || !password) {
-      res.status(400).json({ message: '社員IDとパスワードを入力してください' });
+      res.status(400).json({ message: req.__('errors.validation.required', { field: req.__('errors.validation.credentials') || 'Credentials' }) });
       return;
     }
 
     const user = getOne<User>('SELECT * FROM users WHERE employee_id = ?', [employeeId]);
 
     if (!user) {
-      res.status(401).json({ message: '社員IDまたはパスワードが正しくありません' });
+      res.status(401).json({ message: req.__('errors.invalidCredentials') });
       return;
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      res.status(401).json({ message: '社員IDまたはパスワードが正しくありません' });
+      res.status(401).json({ message: req.__('errors.invalidCredentials') });
       return;
     }
 
@@ -66,7 +66,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    res.status(500).json({ message: req.__('errors.serverError') || 'Server error occurred' });
   }
 };
 

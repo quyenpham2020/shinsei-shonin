@@ -1,0 +1,25 @@
+{
+  "title": "ユーザー管理",
+  "fields": {
+    "employeeId": "社員ID",
+    "name": "名前",
+    "email": "メールアドレス",
+    "department": "部署",
+    "role": "ロール",
+    "weeklyReportExempt": "週報提出を免除する",
+    "createdAt": "作成日時"
+  },
+  "actions": {
+    "addUser": "ユーザー追加",
+    "editUser": "ユーザー編集",
+    "deleteUser": "ユーザー削除"
+  },
+  "messages": {
+    "created": "ユーザーを作成しました",
+    "updated": "ユーザーを更新しました",
+    "deleted": "ユーザーを削除しました",
+    "notFound": "ユーザーが見つかりません",
+    "duplicateEmployeeId": "この社員IDは既に使用されています",
+    "duplicateEmail": "このメールアドレスは既に使用されています"
+  }
+}

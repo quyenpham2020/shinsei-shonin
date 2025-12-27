@@ -1,0 +1,22 @@
+{
+  "required": "{{field}} là bắt buộc",
+  "maxLength": "{{field}} không được vượt quá {{max}} ký tự",
+  "minLength": "{{field}} phải có ít nhất {{min}} ký tự",
+  "email": "Vui lòng nhập email hợp lệ",
+  "number": "Vui lòng nhập số",
+  "positive": "Vui lòng nhập số dương",
+  "fields": {
+    "title": "Tiêu đề",
+    "subject": "Chủ đề",
+    "content": "Nội dung",
+    "description": "Mô tả",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "employeeId": "Mã nhân viên",
+    "name": "Tên",
+    "department": "Phòng ban",
+    "category": "Danh mục",
+    "type": "Loại",
+    "amount": "Số tiền"
+  }
+}

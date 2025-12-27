@@ -1,5 +1,5 @@
 import api from './api';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 
 export interface UserResponse {
   id: number;
@@ -7,7 +7,8 @@ export interface UserResponse {
   name: string;
   email: string;
   department: string;
-  role: 'user' | 'approver' | 'admin';
+  role: UserRole;
+  weekly_report_exempt?: number;
   created_at: string;
 }
 
@@ -17,7 +18,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   department: string;
-  role: 'user' | 'approver' | 'admin';
+  role: UserRole;
 }
 
 export interface UpdateUserData {
@@ -25,25 +26,27 @@ export interface UpdateUserData {
   name?: string;
   email?: string;
   department?: string;
-  role?: 'user' | 'approver' | 'admin';
+  role?: UserRole;
+  weeklyReportExempt?: boolean;
 }
 
-const transformUser = (user: UserResponse): User => ({
+const transformUser = (user: UserResponse): User & { weekly_report_exempt?: number } => ({
   id: user.id,
   employeeId: user.employee_id,
   name: user.name,
   email: user.email,
   department: user.department,
   role: user.role,
+  weekly_report_exempt: user.weekly_report_exempt,
 });
 
 export const userService = {
-  getAll: async (): Promise<User[]> => {
+  getAll: async (): Promise<(User & { weekly_report_exempt?: number })[]> => {
     const response = await api.get<UserResponse[]>('/users');
     return response.data.map(transformUser);
   },
 
-  getById: async (id: number): Promise<User> => {
+  getById: async (id: number): Promise<User & { weekly_report_exempt?: number }> => {
     const response = await api.get<UserResponse>(`/users/${id}`);
     return transformUser(response.data);
   },

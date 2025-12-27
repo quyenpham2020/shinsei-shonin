@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "serverError": "A server error occurred",
+    "unauthorized": "Authentication required",
+    "forbidden": "You do not have permission",
+    "notFound": "Not found",
+    "invalidCredentials": "Invalid employee ID or password",
+    "invalidEmail": "Invalid email address",
+    "emailNotFound": "Email address not found",
+    "invalidToken": "Invalid or expired token",
+    "tokenExpired": "Token has expired",
+    "passwordMismatch": "Current password is incorrect",
+    "duplicateEmployeeId": "This employee ID is already in use",
+    "duplicateEmail": "This email address is already in use",
+    "cannotDeleteSelf": "You cannot delete yourself",
+    "validation": {
+      "required": "{{field}} is required",
+      "invalid": "{{field}} is invalid",
+      "tooLong": "{{field}} is too long",
+      "tooShort": "{{field}} is too short",
+      "credentials": "Employee ID and password"
+    }
+  },
+  "success": {
+    "created": "{{resource}} created successfully",
+    "updated": "{{resource}} updated successfully",
+    "deleted": "{{resource}} deleted successfully",
+    "passwordReset": "Password has been reset",
+    "emailSent": "Email sent successfully"
+  },
+  "resources": {
+    "user": "User",
+    "application": "Application",
+    "department": "Department",
+    "approver": "Approver",
+    "applicationType": "Application Type",
+    "weeklyReport": "Weekly Report",
+    "systemAccess": "System Access",
+    "team": "Team",
+    "feedback": "Feedback",
+    "customer": "Customer",
+    "revenue": "Revenue record"
+  },
+  "feedback": {
+    "disabled": "Feedback feature is currently disabled"
+  }
+}

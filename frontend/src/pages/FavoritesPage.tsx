@@ -155,7 +155,7 @@ const FavoritesPage: React.FC = () => {
                     </TableCell>
                     <TableCell>{formatDate(app.created_at)}</TableCell>
                     <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                      <Tooltip title="お気に入りから削除">
+                      <Tooltip title={t('common:tooltips.removeFromFavorites')}>
                         <IconButton
                           size="small"
                           onClick={(e) => handleToggleFavorite(e, app.id)}

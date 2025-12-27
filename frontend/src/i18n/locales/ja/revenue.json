@@ -1,0 +1,61 @@
+{
+  "title": "売上管理",
+  "customerManagement": "顧客管理",
+  "revenueManagement": "売上管理",
+  "statistics": "統計・分析",
+  "customer": {
+    "name": "顧客名",
+    "description": "説明",
+    "teams": "担当チーム",
+    "status": "ステータス",
+    "active": "有効",
+    "inactive": "無効",
+    "unassigned": "未割当",
+    "addCustomer": "新規顧客追加",
+    "editCustomer": "顧客編集",
+    "deleteCustomer": "顧客削除"
+  },
+  "revenue": {
+    "yearMonth": "年月",
+    "customer": "顧客",
+    "mmOnsite": "MM (Onsite)",
+    "mmOffshore": "MM (Offshore)",
+    "unitPrice": "単価",
+    "totalAmount": "合計金額",
+    "notes": "備考",
+    "totalMM": "合計MM",
+    "addRevenue": "売上データ追加",
+    "editRevenue": "売上データ編集",
+    "deleteRevenue": "売上データ削除"
+  },
+  "fields": {
+    "year": "年",
+    "month": "月",
+    "selectCustomer": "顧客を選択"
+  },
+  "messages": {
+    "confirmDelete": "削除してもよろしいですか？",
+    "confirmDeleteRevenue": "この売上レコードを削除してもよろしいですか？",
+    "saveSuccess": "保存しました",
+    "deleteSuccess": "削除しました"
+  },
+  "stats": {
+    "title": "売上統計・分析",
+    "totalRevenue": "総売上",
+    "totalMM": "総MM",
+    "avgUnitPrice": "平均単価",
+    "customerCount": "顧客数",
+    "monthlyTrend": "月次売上推移",
+    "forecastIncluded": "予測含む",
+    "revenueByCustomer": "顧客別売上構成",
+    "customerFilter": "顧客フィルター",
+    "allCustomers": "全顧客",
+    "systemStatistics": "システム統計",
+    "revenue": "売上",
+    "6months": "6ヶ月",
+    "12months": "12ヶ月",
+    "24months": "24ヶ月",
+    "yearOverYear": "前年同期比較",
+    "quarterlyComparison": "四半期比較"
+  }
+}

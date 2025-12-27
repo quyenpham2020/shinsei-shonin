@@ -1,0 +1,22 @@
+{
+  "required": "{{field}}は必須です",
+  "maxLength": "{{field}}は{{max}}文字以内で入力してください",
+  "minLength": "{{field}}は{{min}}文字以上で入力してください",
+  "email": "有効なメールアドレスを入力してください",
+  "number": "数値を入力してください",
+  "positive": "正の数値を入力してください",
+  "fields": {
+    "title": "件名",
+    "subject": "件名",
+    "content": "内容",
+    "description": "説明",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "employeeId": "社員ID",
+    "name": "名前",
+    "department": "部署",
+    "category": "カテゴリ",
+    "type": "種別",
+    "amount": "金額"
+  }
+}

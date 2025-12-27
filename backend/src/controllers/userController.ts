@@ -2,17 +2,48 @@ import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { getAll, getOne, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
+import { getUsersUnderAuthority } from '../services/permissionService';
 
 // ユーザー一覧取得（管理者用）
-export const getUsers = (req: AuthRequest, res: Response): void => {
+export const getUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const users = getAll(`
-      SELECT id, employee_id, name, email, department, role, created_at
-      FROM users
-      ORDER BY created_at DESC
-    `);
+    const user = req.user!;
 
-    res.json(users);
+    // Admin, BOD, and GM see all users
+    if (user.role === 'admin' || user.role === 'bod' || user.role === 'gm') {
+      const users = getAll(`
+        SELECT id, employee_id, name, email, department, role, weekly_report_exempt, created_at
+        FROM users
+        ORDER BY department ASC, name ASC
+      `);
+      res.json(users);
+      return;
+    }
+
+    // Onsite leader sees only their team members
+    if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+
+      if (allowedUserIds.length === 0) {
+        // Onsite leader has no team members
+        res.json([]);
+        return;
+      }
+
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      const users = getAll(`
+        SELECT id, employee_id, name, email, department, role, weekly_report_exempt, created_at
+        FROM users
+        WHERE id IN (${placeholders})
+        ORDER BY department ASC, name ASC
+      `, allowedUserIds);
+
+      res.json(users);
+      return;
+    }
+
+    // Other roles (approver, user) should not access this endpoint
+    res.status(403).json({ message: '権限がありません' });
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
@@ -37,9 +68,22 @@ export const getApprovers = (req: AuthRequest, res: Response): void => {
 };
 
 // ユーザー取得（単一）
-export const getUser = (req: AuthRequest, res: Response): void => {
+export const getUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const currentUser = req.user!;
+    const targetUserId = Number(id);
+
+    // Onsite leader can only view their team members
+    if (currentUser.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(currentUser.id);
+
+      if (!allowedUserIds.includes(targetUserId)) {
+        res.status(403).json({ message: '権限がありません' });
+        return;
+      }
+    }
+
     const user = getOne<{
       id: number;
       employee_id: string;
@@ -52,7 +96,7 @@ export const getUser = (req: AuthRequest, res: Response): void => {
       SELECT id, employee_id, name, email, department, role, created_at
       FROM users
       WHERE id = ?
-    `, [Number(id)]);
+    `, [targetUserId]);
 
     if (!user) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
@@ -132,7 +176,7 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
 export const updateUser = (req: AuthRequest, res: Response): void => {
   try {
     const { id } = req.params;
-    const { employeeId, name, email, department, role } = req.body;
+    const { employeeId, name, email, department, role, weeklyReportExempt } = req.body;
 
     // ユーザーの存在確認
     const existingUser = getOne<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(id)]);
@@ -179,9 +223,10 @@ export const updateUser = (req: AuthRequest, res: Response): void => {
           name = COALESCE(?, name),
           email = COALESCE(?, email),
           department = COALESCE(?, department),
-          role = COALESCE(?, role)
+          role = COALESCE(?, role),
+          weekly_report_exempt = COALESCE(?, weekly_report_exempt)
       WHERE id = ?
-    `, [employeeId || null, name || null, email || null, department || null, role || null, Number(id)]);
+    `, [employeeId || null, name || null, email || null, department || null, role || null, weeklyReportExempt !== undefined ? (weeklyReportExempt ? 1 : 0) : null, Number(id)]);
 
     const updatedUser = getOne<{
       id: number;
@@ -216,9 +261,15 @@ export const deleteUser = (req: AuthRequest, res: Response): void => {
     }
 
     // ユーザーの存在確認
-    const existingUser = getOne<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(id)]);
+    const existingUser = getOne<{ id: number; role: string }>(`SELECT id, role FROM users WHERE id = ?`, [Number(id)]);
     if (!existingUser) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
+      return;
+    }
+
+    // 管理者ユーザーは削除不可
+    if (existingUser.role === 'admin') {
+      res.status(400).json({ message: '管理者ユーザーは削除できません' });
       return;
     }
 

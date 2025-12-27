@@ -1,0 +1,34 @@
+{
+  "title": "Phản hồi",
+  "management": "Quản lý phản hồi",
+  "submit": "Gửi phản hồi mới",
+  "history": "Lịch sử gửi",
+  "fields": {
+    "category": "Danh mục",
+    "subject": "Chủ đề",
+    "content": "Nội dung",
+    "status": "Trạng thái",
+    "adminResponse": "Phản hồi từ quản trị viên",
+    "submittedAt": "Ngày gửi",
+    "respondedAt": "Ngày trả lời"
+  },
+  "categories": {
+    "feature_request": "Yêu cầu tính năng",
+    "bug_report": "Báo lỗi",
+    "improvement": "Đề xuất cải tiến",
+    "question": "Câu hỏi",
+    "other": "Khác"
+  },
+  "status": {
+    "pending": "Chờ xử lý",
+    "responded": "Đã trả lời",
+    "closed": "Đã đóng"
+  },
+  "messages": {
+    "submitted": "Đã gửi phản hồi thành công",
+    "updated": "Đã cập nhật phản hồi thành công",
+    "deleted": "Đã xóa phản hồi thành công",
+    "noFeedback": "Bạn chưa gửi phản hồi nào",
+    "disabled": "Tính năng phản hồi hiện đang bị tắt. Vui lòng liên hệ quản trị viên."
+  }
+}

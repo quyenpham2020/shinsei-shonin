@@ -289,21 +289,23 @@ const ApproverListPage: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditOpen(approver)}
-                      title="編集"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteOpen(approver)}
-                      title="削除"
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <Tooltip title={t('common:tooltips.edit')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditOpen(approver)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t('common:tooltips.delete')}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteOpen(approver)}
+                        color="error"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
