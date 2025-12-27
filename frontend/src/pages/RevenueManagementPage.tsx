@@ -47,7 +47,8 @@ const RevenueManagementPage: React.FC = () => {
     month: new Date().getMonth() + 1,
     mm_onsite: 0,
     mm_offshore: 0,
-    unit_price: 0,
+    unit_price_onsite: 0,
+    unit_price_offshore: 0,
     notes: '',
   });
 
@@ -85,7 +86,8 @@ const RevenueManagementPage: React.FC = () => {
         month: record.month,
         mm_onsite: record.mm_onsite,
         mm_offshore: record.mm_offshore,
-        unit_price: record.unit_price,
+        unit_price_onsite: record.unit_price_onsite || 0,
+        unit_price_offshore: record.unit_price_offshore || 0,
         notes: record.notes || '',
       });
     } else {
@@ -96,7 +98,8 @@ const RevenueManagementPage: React.FC = () => {
         month: new Date().getMonth() + 1,
         mm_onsite: 0,
         mm_offshore: 0,
-        unit_price: 0,
+        unit_price_onsite: 0,
+        unit_price_offshore: 0,
         notes: '',
       });
     }
@@ -164,7 +167,8 @@ const RevenueManagementPage: React.FC = () => {
               <TableCell>{t('revenue:customer.name')}</TableCell>
               <TableCell align="right">{t('revenue:revenue.mmOnsite')}</TableCell>
               <TableCell align="right">{t('revenue:revenue.mmOffshore')}</TableCell>
-              <TableCell align="right">{t('revenue:revenue.unitPrice')}</TableCell>
+              <TableCell align="right">単価 Onsite</TableCell>
+              <TableCell align="right">単価 Offshore</TableCell>
               <TableCell align="right">{t('revenue:revenue.totalAmount')}</TableCell>
               <TableCell>{t('revenue:revenue.notes')}</TableCell>
               <TableCell align="right">{t('common:table.actions')}</TableCell>
@@ -184,7 +188,8 @@ const RevenueManagementPage: React.FC = () => {
                 <TableCell>{record.customer_name}</TableCell>
                 <TableCell align="right">{record.mm_onsite.toFixed(2)}</TableCell>
                 <TableCell align="right">{record.mm_offshore.toFixed(2)}</TableCell>
-                <TableCell align="right">{formatCurrency(record.unit_price)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.unit_price_onsite || 0)}</TableCell>
+                <TableCell align="right">{formatCurrency(record.unit_price_offshore || 0)}</TableCell>
                 <TableCell align="right">
                   <Typography variant="body2" fontWeight="bold">
                     {formatCurrency(record.total_amount)}
@@ -272,10 +277,20 @@ const RevenueManagementPage: React.FC = () => {
 
           <TextField
             fullWidth
-            label={`${t('revenue:revenue.unitPrice')} (円)`}
+            label="単価 Onsite (円)"
             type="number"
-            value={formData.unit_price}
-            onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
+            value={formData.unit_price_onsite}
+            onChange={(e) => setFormData({ ...formData, unit_price_onsite: Number(e.target.value) })}
+            margin="normal"
+            inputProps={{ min: 0 }}
+          />
+
+          <TextField
+            fullWidth
+            label="単価 Offshore (円)"
+            type="number"
+            value={formData.unit_price_offshore}
+            onChange={(e) => setFormData({ ...formData, unit_price_offshore: Number(e.target.value) })}
             margin="normal"
             inputProps={{ min: 0 }}
           />
@@ -286,7 +301,7 @@ const RevenueManagementPage: React.FC = () => {
             </Typography>
             <Typography variant="h6" color="primary">
               {t('revenue:revenue.totalAmount')}:{' '}
-              {formatCurrency((formData.mm_onsite + formData.mm_offshore) * formData.unit_price)}
+              {formatCurrency((formData.mm_onsite * (formData.unit_price_onsite || 0)) + (formData.mm_offshore * (formData.unit_price_offshore || 0)))}
             </Typography>
           </Box>
 

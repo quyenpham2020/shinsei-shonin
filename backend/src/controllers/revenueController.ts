@@ -10,7 +10,9 @@ interface RevenueRecord {
   month: number;
   mm_onsite: number;
   mm_offshore: number;
-  unit_price: number;
+  unit_price: number; // Legacy field
+  unit_price_onsite: number;
+  unit_price_offshore: number;
   total_amount: number;
   notes: string | null;
   created_at: string;
@@ -148,7 +150,7 @@ export const getRevenueRecord = async (req: AuthRequest, res: Response): Promise
 // Create revenue record
 export const createRevenueRecord = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user!;
-  const { customer_id, year, month, mm_onsite, mm_offshore, unit_price, notes } = req.body;
+  const { customer_id, year, month, mm_onsite, mm_offshore, unit_price, unit_price_onsite, unit_price_offshore, notes } = req.body;
 
   // Only admin, GM, BOD, and onsite_leader can create revenue records
   if (user.role === 'user' || user.role === 'approver') {
@@ -163,15 +165,18 @@ export const createRevenueRecord = async (req: AuthRequest, res: Response): Prom
   }
 
   try {
+    // Use new unit prices if provided, otherwise fall back to legacy unit_price
+    const onsitePrice = unit_price_onsite !== undefined ? unit_price_onsite : (unit_price || 0);
+    const offshorePrice = unit_price_offshore !== undefined ? unit_price_offshore : (unit_price || 0);
+
     // Calculate total amount
-    const total_mm = (mm_onsite || 0) + (mm_offshore || 0);
-    const total_amount = total_mm * (unit_price || 0);
+    const total_amount = ((mm_onsite || 0) * onsitePrice) + ((mm_offshore || 0) * offshorePrice);
 
     const result = runQuery(
       `INSERT INTO revenue_records
-       (customer_id, year, month, mm_onsite, mm_offshore, unit_price, total_amount, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [customer_id, year, month, mm_onsite || 0, mm_offshore || 0, unit_price || 0, total_amount, notes || null, user.id]
+       (customer_id, year, month, mm_onsite, mm_offshore, unit_price, unit_price_onsite, unit_price_offshore, total_amount, notes, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [customer_id, year, month, mm_onsite || 0, mm_offshore || 0, unit_price || 0, onsitePrice, offshorePrice, total_amount, notes || null, user.id]
     );
 
     res.status(201).json({
@@ -192,7 +197,7 @@ export const createRevenueRecord = async (req: AuthRequest, res: Response): Prom
 export const updateRevenueRecord = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user!;
   const recordId = parseInt(req.params.id);
-  const { customer_id, year, month, mm_onsite, mm_offshore, unit_price, notes } = req.body;
+  const { customer_id, year, month, mm_onsite, mm_offshore, unit_price, unit_price_onsite, unit_price_offshore, notes } = req.body;
 
   // Only admin, GM, BOD, and onsite_leader can update revenue records
   if (user.role === 'user' || user.role === 'approver') {
@@ -218,16 +223,19 @@ export const updateRevenueRecord = async (req: AuthRequest, res: Response): Prom
       return;
     }
 
+    // Use new unit prices if provided, otherwise fall back to legacy unit_price
+    const onsitePrice = unit_price_onsite !== undefined ? unit_price_onsite : (unit_price || 0);
+    const offshorePrice = unit_price_offshore !== undefined ? unit_price_offshore : (unit_price || 0);
+
     // Calculate total amount
-    const total_mm = (mm_onsite || 0) + (mm_offshore || 0);
-    const total_amount = total_mm * (unit_price || 0);
+    const total_amount = ((mm_onsite || 0) * onsitePrice) + ((mm_offshore || 0) * offshorePrice);
 
     runQuery(
       `UPDATE revenue_records
        SET customer_id = ?, year = ?, month = ?, mm_onsite = ?, mm_offshore = ?,
-           unit_price = ?, total_amount = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+           unit_price = ?, unit_price_onsite = ?, unit_price_offshore = ?, total_amount = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [customer_id, year, month, mm_onsite || 0, mm_offshore || 0, unit_price || 0, total_amount, notes || null, recordId]
+      [customer_id, year, month, mm_onsite || 0, mm_offshore || 0, unit_price || 0, onsitePrice, offshorePrice, total_amount, notes || null, recordId]
     );
 
     res.json({

@@ -349,6 +349,14 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
     )
   `);
 
+  // Add separate unit price columns for onsite and offshore
+  try {
+    db.run(`ALTER TABLE revenue_records ADD COLUMN unit_price_onsite REAL NOT NULL DEFAULT 0`);
+  } catch (e) { /* Column may already exist */ }
+  try {
+    db.run(`ALTER TABLE revenue_records ADD COLUMN unit_price_offshore REAL NOT NULL DEFAULT 0`);
+  } catch (e) { /* Column may already exist */ }
+
 saveDatabase();
   return db;
 }

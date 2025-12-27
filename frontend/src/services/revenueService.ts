@@ -10,7 +10,9 @@ export interface RevenueRecord {
   month: number;
   mm_onsite: number;
   mm_offshore: number;
-  unit_price: number;
+  unit_price: number; // Legacy field
+  unit_price_onsite: number;
+  unit_price_offshore: number;
   total_amount: number;
   notes: string | null;
   created_at: string;
@@ -24,7 +26,9 @@ export interface RevenueInput {
   month: number;
   mm_onsite: number;
   mm_offshore: number;
-  unit_price: number;
+  unit_price?: number; // Legacy field - optional for backward compatibility
+  unit_price_onsite?: number;
+  unit_price_offshore?: number;
   notes?: string;
 }
 
