@@ -360,6 +360,38 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
     db.run(`ALTER TABLE revenue_records ADD COLUMN unit_price_offshore REAL NOT NULL DEFAULT 0`);
   } catch (e) { /* Column may already exist */ }
 
+  // Reminder logs table - tracks when reminders were sent
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reminder_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      reminder_type TEXT NOT NULL,
+      week_start_date TEXT NOT NULL,
+      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // System Settings table updates - add default settings if they don't exist
+  const insertSettingIfNotExists = (key: string, value: string, description: string) => {
+    const exists = db.exec(`SELECT 1 FROM system_settings WHERE setting_key = '${key}'`);
+    if (!exists || exists.length === 0) {
+      db.run(`INSERT INTO system_settings (setting_key, setting_value, description) VALUES (?, ?, ?)`, [key, value, description]);
+    }
+  };
+
+  // Email configuration settings
+  insertSettingIfNotExists('email_host', '', 'SMTP host for sending emails (e.g., smtp.gmail.com)');
+  insertSettingIfNotExists('email_port', '587', 'SMTP port (587 for TLS, 465 for SSL)');
+  insertSettingIfNotExists('email_secure', 'false', 'Use secure connection (true for SSL on port 465)');
+  insertSettingIfNotExists('email_user', '', 'SMTP username/email address');
+  insertSettingIfNotExists('email_password', '', 'SMTP password or app password');
+  insertSettingIfNotExists('email_from', '', 'From email address for sent emails');
+
+  // Escalation settings
+  insertSettingIfNotExists('enable_sunday_escalation', 'true', 'Enable Sunday 7 PM escalation to GM/BOD');
+  insertSettingIfNotExists('escalation_emails', '', 'Comma-separated email addresses for GM/BOD escalation');
+
 saveDatabase();
   return db;
 }

@@ -215,6 +215,31 @@ const WeeklyReportPage: React.FC = () => {
         週次報告管理
       </Typography>
 
+      {/* Reminder Banner - Show if no current week report */}
+      {comparisonData && !comparisonData.currentWeek.report && (
+        <Alert
+          severity="warning"
+          sx={{
+            mb: 3,
+            backgroundColor: '#fff3cd',
+            borderLeft: '4px solid #ffc107',
+            '& .MuiAlert-icon': {
+              fontSize: '32px',
+            },
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+            週次報告の提出をお願いします
+          </Typography>
+          <Typography variant="body1" sx={{ fontSize: '18px', fontWeight: 600, color: '#d32f2f' }}>
+            Hãy gửi báo cáo tuần ở chỗ dễ nhìn trên web
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            {comparisonData.currentWeek.weekStart} 週の報告がまだ提出されていません。下記のフォームから報告を入力してください。
+          </Typography>
+        </Alert>
+      )}
+
       <Paper sx={{ width: '100%' }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="報告入力" />

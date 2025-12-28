@@ -252,6 +252,33 @@ export const initDatabase = async (): Promise<void> => {
       )
     `);
 
+    // Reminder logs table - tracks when reminders were sent
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS reminder_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        reminder_type VARCHAR(50) NOT NULL,
+        week_start_date VARCHAR(10) NOT NULL,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Insert default system settings for email and escalation
+    await client.query(`
+      INSERT INTO system_settings (key, value, description)
+      VALUES
+        ('email_host', '', 'SMTP host for sending emails (e.g., smtp.gmail.com)'),
+        ('email_port', '587', 'SMTP port (587 for TLS, 465 for SSL)'),
+        ('email_secure', 'false', 'Use secure connection (true for SSL on port 465)'),
+        ('email_user', '', 'SMTP username/email address'),
+        ('email_password', '', 'SMTP password or app password'),
+        ('email_from', '', 'From email address for sent emails'),
+        ('enable_sunday_escalation', 'true', 'Enable Sunday 7 PM escalation to GM/BOD'),
+        ('escalation_emails', '', 'Comma-separated email addresses for GM/BOD escalation')
+      ON CONFLICT (key) DO NOTHING
+    `);
+
     await client.query('COMMIT');
     console.log('PostgreSQL database schema initialized successfully');
   } catch (error) {
