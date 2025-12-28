@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Container,
   Typography,
@@ -62,6 +63,7 @@ interface UserOption {
 
 const TeamManagementPage: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [teams, setTeams] = useState<Team[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [allUsers, setAllUsers] = useState<UserOption[]>([]);
