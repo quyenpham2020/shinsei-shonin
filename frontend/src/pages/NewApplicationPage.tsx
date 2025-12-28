@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Autocomplete,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -53,6 +54,13 @@ import { applicationService, CreateApplicationData } from '../services/applicati
 import { attachmentService, Attachment } from '../services/attachmentService';
 import { applicationTypeService, ApplicationType as ApplicationTypeModel } from '../services/applicationTypeService';
 import { departmentService, Department } from '../services/departmentService';
+import { userService } from '../services/userService';
+
+interface UserOption {
+  id: number;
+  name: string;
+  employeeId: string;
+}
 
 const MAX_TITLE_LENGTH = 500;
 const MAX_DESCRIPTION_LENGTH = 5000;
@@ -92,6 +100,7 @@ const NewApplicationPage: React.FC = () => {
   // Data state
   const [applicationTypes, setApplicationTypes] = useState<ApplicationTypeModel[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [approvers, setApprovers] = useState<UserOption[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
   const [isLoadingApplication, setIsLoadingApplication] = useState(false);
@@ -104,6 +113,7 @@ const NewApplicationPage: React.FC = () => {
     amount: undefined,
     departmentId: undefined,
     preferredDate: undefined,
+    approverId: undefined,
   });
   const [preferredDate, setPreferredDate] = useState<Dayjs | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -119,12 +129,22 @@ const NewApplicationPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [types, depts] = await Promise.all([
+        const [types, depts, users] = await Promise.all([
           applicationTypeService.getAll(),
           departmentService.getAll(true), // Only active departments
+          userService.getAll(),
         ]);
         setApplicationTypes(types);
         setDepartments(depts);
+        // Filter users who can be approvers: approver, gm, bod, admin
+        const approverList = users
+          .filter((u: any) => ['approver', 'gm', 'bod', 'admin'].includes(u.role))
+          .map((u: any) => ({
+            id: u.id,
+            employeeId: u.employee_id,
+            name: u.name,
+          }));
+        setApprovers(approverList);
         if (types.length > 0 && !id) {
           const firstType = types[0];
           const today = dayjs().format('YYYY-MM-DD');
@@ -155,6 +175,7 @@ const NewApplicationPage: React.FC = () => {
             amount: app.amount || undefined,
             departmentId: app.department_id || undefined,
             preferredDate: app.preferred_date || undefined,
+            approverId: app.approver_id || undefined,
           });
           if (app.preferred_date) {
             setPreferredDate(dayjs(app.preferred_date));
@@ -539,6 +560,19 @@ const NewApplicationPage: React.FC = () => {
                         <FormHelperText>一般ユーザーは自部署のみ選択可能です</FormHelperText>
                       )}
                     </FormControl>
+                  </Grid>
+
+                  {/* Approver */}
+                  <Grid item xs={12} md={6}>
+                    <Autocomplete
+                      options={approvers}
+                      getOptionLabel={(option) => `${option.name} (${option.employeeId})`}
+                      value={approvers.find(a => a.id === formData.approverId) || null}
+                      onChange={(_, newValue) => handleChange('approverId', newValue?.id)}
+                      renderInput={(params) => (
+                        <TextField {...params} label="承認者（任意）" helperText="承認者を指定する場合は選択してください" />
+                      )}
+                    />
                   </Grid>
 
                   {/* Title */}

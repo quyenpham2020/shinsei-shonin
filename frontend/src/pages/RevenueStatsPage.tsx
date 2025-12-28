@@ -47,6 +47,7 @@ interface CustomerData {
   name: string;
   revenue: number;
   mm: number;
+  [key: string]: string | number;
 }
 
 interface YearOverYearData {

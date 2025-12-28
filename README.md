@@ -1,22 +1,101 @@
-# 申請・承認管理システム デモ
+# 申請・承認管理システム (Shinsei Shonin System)
 
-申請・承認ワークフローを管理するWebアプリケーションのデモです。
+完全な多言語対応（日本語・英語・ベトナム語）のワークフロー承認管理システム
 
-## 技術スタック
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-### フロントエンド
-- React 18
-- TypeScript
-- Material-UI (MUI)
-- Vite
-- React Router
+## 📋 主な機能
+
+### ✅ 申請・承認管理
+- 申請の作成、編集、削除
+- 承認フロー管理
+- ファイル添付機能
+- お気に入り登録
+
+### 👥 ユーザー・組織管理
+- ユーザー管理（Excel インポート/エクスポート対応）
+- 部署管理
+- チーム管理（Webhook統合: Google Chat / Microsoft Teams）
+- 承認者管理
+- システムアクセス権限管理
+
+### 💰 顧客・売上管理
+- 顧客マスタ管理（Excel インポート/エクスポート対応）
+- 売上実績管理（オンサイト/オフショア別単価対応）
+- 売上統計・分析
+- グループ表示機能（顧客別・チーム別）
+
+### 📊 週次報告
+- 週次レポート作成・提出
+- リーダー向け一覧表示（3週間テーブル表示）
+- メンバー詳細表示
+- 自動リマインダー（毎週金曜日）
+
+### 💬 フィードバック・設定
+- ユーザーフィードバック管理
+- システム設定
+- 承認フロー設定
+
+### 🌐 多言語対応（i18n）
+- 日本語（デフォルト）
+- 英語
+- ベトナム語
+- TypeScript型定義による翻訳キー補完
+
+## 🚀 デプロイ
+
+### クイックデプロイ（5分）
+
+```bash
+# 1. GitHubにプッシュ
+git add .
+git commit -m "Ready for deployment"
+git push origin main
+
+# 2. Railway でデプロイ
+# https://railway.app にアクセスして
+# "Deploy from GitHub repo" を選択
+
+# 3. カスタムドメイン設定
+# vtinagoya.jp.co などを設定可能
+```
+
+詳細は [DEPLOYMENT.md](./DEPLOYMENT.md) または [QUICK_START.md](./QUICK_START.md) を参照
+
+### デプロイオプション
+
+| サービス | 無料プラン | ロールバック | カスタムドメイン | 推奨 |
+|---------|----------|------------|---------------|-----|
+| Railway | ✅ $5/月 | ✅ ワンクリック | ✅ 無料 | ⭐⭐⭐ |
+| Render  | ✅ 完全無料 | ✅ 手動 | ✅ 無料 | ⭐⭐ |
+
+### 要件を満たすデプロイ機能
+
+✅ **バージョン管理**: Git コミットベースで自動管理
+✅ **バックアップ・ロールバック**: UIから数クリックで復元可能
+✅ **完全無料**: 無料プランで運用可能
+✅ **カスタムドメイン**: vtinagoya.jp.co などを設定可能
+
+## 🏗️ 技術スタック
 
 ### バックエンド
-- Node.js
-- Express
-- TypeScript
-- sql.js (SQLite)
-- JWT認証
+- **Runtime**: Node.js + TypeScript
+- **Framework**: Express.js
+- **Database**: SQLite (開発) / PostgreSQL (本番)
+- **認証**: JWT + bcrypt
+- **i18n**: i18n (Node.js)
+- **スケジューラー**: node-cron
+
+### フロントエンド
+- **Framework**: React 18 + TypeScript
+- **UI Library**: Material-UI (MUI) 5
+- **Routing**: React Router v6
+- **i18n**: react-i18next
+- **Charts**: Recharts
+- **Excel**: SheetJS (xlsx)
+- **Date**: Day.js
+- **Build Tool**: Vite
 
 ## プロジェクト構成
 
@@ -76,52 +155,103 @@ npm run dev
 
 ブラウザで http://localhost:3000 を開いてください。
 
-## デモアカウント
+## 💻 ローカル開発
 
-| ロール | 社員ID | パスワード | 権限 |
-|--------|--------|------------|------|
-| 一般ユーザー | EMP001 | password123 | 自分の申請の作成・閲覧 |
-| 承認者 | EMP002 | password123 | 全申請の閲覧・承認・却下 |
-| 管理者 | EMP003 | password123 | 全機能 + ユーザー管理 |
+### デフォルトログイン情報
 
-## 機能
+```
+Email: admin@example.com
+Password: Admin123!
+```
 
-### 一般ユーザー
-- ダッシュボード（申請状況サマリー）
-- 新規申請作成
-- 自分の申請一覧・詳細閲覧
-- 申請へのコメント
+⚠️ 本番環境では必ず変更してください！
 
-### 承認者・管理者
-- 全申請の一覧・詳細閲覧
-- 申請の承認・却下
-- 却下理由の入力
+## 🔧 環境変数
 
-### 申請種別
-- 出張申請
-- 経費精算
-- 休暇申請
-- 備品購入
-- その他
+### バックエンド (.env)
 
-## API エンドポイント
+```bash
+NODE_ENV=production
+PORT=5000
+DATABASE_TYPE=postgresql
+DATABASE_URL=postgresql://user:password@host:5432/database
+JWT_SECRET=your-super-secret-jwt-key
+FRONTEND_URL=https://your-frontend-url.com
+```
 
-### 認証
-- `POST /api/auth/login` - ログイン
-- `GET /api/auth/profile` - プロフィール取得
+### フロントエンド (.env)
 
-### 申請
-- `GET /api/applications` - 申請一覧
-- `GET /api/applications/:id` - 申請詳細
-- `POST /api/applications` - 新規申請
-- `POST /api/applications/:id/approve` - 承認
-- `POST /api/applications/:id/reject` - 却下
-- `POST /api/applications/:id/comments` - コメント追加
+```bash
+VITE_API_URL=https://your-backend-url.com
+```
 
-### ユーザー
-- `GET /api/users` - ユーザー一覧（管理者のみ）
-- `GET /api/users/approvers` - 承認者一覧
+詳細は `.env.example` ファイルを参照
 
-## ライセンス
+## 📊 データベーススキーマ
 
-MIT
+- **users**: ユーザー情報
+- **teams**: チーム情報（webhook_url 含む）
+- **departments**: 部署情報
+- **customers**: 顧客マスタ（team連携）
+- **applications**: 申請情報（approver_id 含む）
+- **application_types**: 申請種別
+- **approvers**: 承認者マスタ
+- **attachments**: 添付ファイル
+- **favorites**: お気に入り
+- **weekly_reports**: 週次報告
+- **revenue**: 売上実績（onsite/offshore単価分離）
+- **feedback**: フィードバック
+- **system_settings**: システム設定
+- **user_system_access**: システムアクセス権限
+
+## 🔄 バージョン管理とロールバック
+
+### デプロイ前のタグ付け
+
+```bash
+git tag -a v1.0.0 -m "Production release 1.0.0"
+git push origin v1.0.0
+```
+
+### ロールバック方法
+
+**Railway の場合:**
+1. Dashboard → Deployments
+2. 復元したいバージョンを選択
+3. "Rollback to this version" をクリック
+
+**Render の場合:**
+1. Dashboard → サービス選択
+2. Manual Deploy → 過去のコミットを選択
+3. "Deploy" をクリック
+
+**Git経由:**
+```bash
+# 直前のコミットを取り消し
+git revert HEAD
+git push origin main
+
+# または特定のコミットに戻す
+git reset --hard <commit-hash>
+git push --force origin main
+```
+
+## 🤝 コントリビューション
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 ライセンス
+
+MIT License
+
+## 👨‍💻 作成者
+
+VTI Nagoya Team
+
+---
+
+**デプロイに関する詳細は [DEPLOYMENT.md](./DEPLOYMENT.md) を参照してください**

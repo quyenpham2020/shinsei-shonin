@@ -263,6 +263,9 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
   // Add department_id column to users table for proper foreign key relationship
   addColumnIfNotExists('users', 'department_id', 'INTEGER');
 
+  // Add webhook_url to teams table for Google Chat/Teams integration
+  addColumnIfNotExists('teams', 'webhook_url', 'TEXT');
+
   // Add weekly_report_exempt column (user doesn't need to submit weekly reports)
   addColumnIfNotExists('users', 'weekly_report_exempt', 'INTEGER DEFAULT 0');
 

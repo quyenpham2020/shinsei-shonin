@@ -10,6 +10,7 @@ export interface AuthRequest extends Request {
     email: string;
     department: string;
     role: string;
+    teamId?: number;
   };
 }
 
@@ -50,3 +51,6 @@ export const requireRole = (...roles: string[]) => {
     next();
   };
 };
+
+// Alias for backwards compatibility
+export const authMiddleware = authenticateToken;

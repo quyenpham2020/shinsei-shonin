@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -25,8 +25,22 @@ import {
   SelectChangeEvent,
   Switch,
   FormControlLabel,
+  Collapse,
+  ButtonGroup,
+  Alert,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  FileUpload as ImportIcon,
+  FileDownload as ExportIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  UnfoldMore as ExpandAllIcon,
+  UnfoldLess as CollapseAllIcon,
+} from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import { customerService, Customer, CustomerInput } from '../services/customerService';
 import { useTranslation } from 'react-i18next';
 
@@ -34,6 +48,8 @@ interface Team {
   id: number;
   name: string;
 }
+
+type GroupByMode = 'none' | 'team';
 
 const CustomerListPage: React.FC = () => {
   const { t } = useTranslation();
@@ -47,6 +63,11 @@ const CustomerListPage: React.FC = () => {
     description: '',
     team_ids: [],
   });
+  const [groupBy, setGroupBy] = useState<GroupByMode>('none');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -146,6 +167,117 @@ const CustomerListPage: React.FC = () => {
     });
   };
 
+  // Group customers by team
+  const groupedData: Record<string, Customer[]> = {};
+  if (groupBy === 'team') {
+    customers.forEach(customer => {
+      const teamNames = customer.team_names?.join(', ') || '未割り当て';
+      if (!groupedData[teamNames]) {
+        groupedData[teamNames] = [];
+      }
+      groupedData[teamNames].push(customer);
+    });
+  }
+
+  const toggleGroup = (groupName: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupName)) {
+      newExpanded.delete(groupName);
+    } else {
+      newExpanded.add(groupName);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const expandAll = () => {
+    setExpandedGroups(new Set(Object.keys(groupedData)));
+  };
+
+  const collapseAll = () => {
+    setExpandedGroups(new Set());
+  };
+
+  // Excel Export
+  const handleExport = () => {
+    try {
+      const exportData = customers.map(customer => ({
+        '顧客名': customer.name,
+        '説明': customer.description || '',
+        '担当チーム': customer.team_names?.join(', ') || '',
+        'ステータス': customer.is_active === 1 ? '有効' : '無効',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '顧客一覧');
+
+      const fileName = `customers_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      setSuccess('Excelファイルをエクスポートしました');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError('Excelファイルのエクスポートに失敗しました');
+      console.error(err);
+    }
+  };
+
+  // Excel Import
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of jsonData) {
+        try {
+          // Find team IDs from team names
+          const teamNames = row['担当チーム']?.split(',').map((n: string) => n.trim()) || [];
+          const team_ids = teams
+            .filter(t => teamNames.includes(t.name))
+            .map(t => t.id);
+
+          const customerData: CustomerInput = {
+            name: row['顧客名'],
+            description: row['説明'] || '',
+            team_ids: team_ids,
+          };
+
+          await customerService.create(customerData);
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          console.error('Failed to import customer:', row['顧客名'], err);
+        }
+      }
+
+      if (successCount > 0) {
+        setSuccess(`${successCount}件の顧客をインポートしました${errorCount > 0 ? ` (${errorCount}件失敗)` : ''}`);
+        fetchCustomers();
+      } else {
+        setError('顧客のインポートに失敗しました');
+      }
+    } catch (err) {
+      setError('Excelファイルの読み込みに失敗しました');
+      console.error(err);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return <Typography>Loading...</Typography>;
   }
@@ -154,15 +286,72 @@ const CustomerListPage: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">{t('revenue:customerManagement')}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          {t('revenue:customer.addCustomer')}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>グループ表示</InputLabel>
+            <Select
+              value={groupBy}
+              label="グループ表示"
+              onChange={(e) => {
+                setGroupBy(e.target.value as GroupByMode);
+                setExpandedGroups(new Set());
+              }}
+            >
+              <MenuItem value="none">なし</MenuItem>
+              <MenuItem value="team">チーム別</MenuItem>
+            </Select>
+          </FormControl>
+
+          {groupBy !== 'none' && (
+            <ButtonGroup size="small" variant="outlined">
+              <Button startIcon={<ExpandAllIcon />} onClick={expandAll}>
+                全展開
+              </Button>
+              <Button startIcon={<CollapseAllIcon />} onClick={collapseAll}>
+                全省略
+              </Button>
+            </ButtonGroup>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+
+          <Button variant="outlined" startIcon={<ImportIcon />} onClick={handleImportClick}>
+            インポート
+          </Button>
+
+          <Button variant="outlined" startIcon={<ExportIcon />} onClick={handleExport}>
+            エクスポート
+          </Button>
+
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+            {t('revenue:customer.addCustomer')}
+          </Button>
+        </Box>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
+              {groupBy !== 'none' && <TableCell sx={{ width: 50 }} />}
               <TableCell>{t('revenue:customer.name')}</TableCell>
               <TableCell>{t('revenue:customer.description')}</TableCell>
               <TableCell>{t('revenue:customer.teams')}</TableCell>
@@ -172,7 +361,8 @@ const CustomerListPage: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {customers.map((customer) => (
+            {groupBy === 'none' ? (
+              customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>{customer.name}</TableCell>
                 <TableCell>{customer.description || '-'}</TableCell>
@@ -209,7 +399,76 @@ const CustomerListPage: React.FC = () => {
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))}
+            ))
+            ) : (
+              Object.keys(groupedData).sort().map((groupName) => (
+                <React.Fragment key={groupName}>
+                  <TableRow sx={{ bgcolor: 'action.hover' }}>
+                    <TableCell>
+                      <IconButton size="small" onClick={() => toggleGroup(groupName)}>
+                        {expandedGroups.has(groupName) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell colSpan={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {groupName}
+                        </Typography>
+                        <Chip label={`${groupedData[groupName].length}件`} size="small" />
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={7} sx={{ p: 0, border: 0 }}>
+                      <Collapse in={expandedGroups.has(groupName)} timeout="auto" unmountOnExit>
+                        <Table size="small">
+                          <TableBody>
+                            {groupedData[groupName].map((customer) => (
+                              <TableRow key={customer.id}>
+                                <TableCell>{customer.name}</TableCell>
+                                <TableCell>{customer.description || '-'}</TableCell>
+                                <TableCell>
+                                  {customer.team_names && customer.team_names.length > 0 ? (
+                                    customer.team_names.map((teamName, idx) => (
+                                      <Chip key={idx} label={teamName} size="small" sx={{ mr: 0.5 }} />
+                                    ))
+                                  ) : (
+                                    <Typography variant="body2" color="text.secondary">
+                                      {t('revenue:customer.unassigned')}
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <FormControlLabel
+                                    control={
+                                      <Switch
+                                        checked={customer.is_active === 1}
+                                        onChange={() => handleToggleActive(customer)}
+                                        size="small"
+                                      />
+                                    }
+                                    label={customer.is_active === 1 ? t('revenue:customer.active') : t('revenue:customer.inactive')}
+                                  />
+                                </TableCell>
+                                <TableCell>{new Date(customer.created_at).toLocaleDateString('ja-JP')}</TableCell>
+                                <TableCell align="right">
+                                  <IconButton size="small" onClick={() => handleOpenDialog(customer)}>
+                                    <EditIcon />
+                                  </IconButton>
+                                  <IconButton size="small" onClick={() => handleDelete(customer.id)} color="error">
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

@@ -9,6 +9,7 @@ export interface CreateApplicationData {
   isDraft?: boolean;
   departmentId?: number;
   preferredDate?: string;
+  approverId?: number;
 }
 
 export interface CreateSupplementaryData {
@@ -25,6 +26,7 @@ export interface UpdateApplicationData {
   isDraft?: boolean;
   departmentId?: number;
   preferredDate?: string;
+  approverId?: number;
 }
 
 export interface ApplicationFilters {

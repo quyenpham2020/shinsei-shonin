@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -41,7 +41,10 @@ import {
   VpnKey as KeyIcon,
   ExpandMore as ExpandMoreIcon,
   Business as BusinessIcon,
+  FileUpload as ImportIcon,
+  FileDownload as ExportIcon,
 } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import { userService, CreateUserData, UpdateUserData } from '../services/userService';
 import { departmentService, Department } from '../services/departmentService';
 import { User, ROLE_LABELS, UserRole } from '../types';
@@ -87,6 +90,7 @@ const UserListPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [expandedDepts, setExpandedDepts] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -289,6 +293,93 @@ const UserListPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Excel Export
+  const handleExport = () => {
+    try {
+      const exportData = users.map(user => ({
+        '社員番号': user.employeeId,
+        '名前': user.name,
+        'メール': user.email,
+        '部署': user.department,
+        'ロール': ROLE_LABELS[user.role],
+        '週次報告免除': user.weekly_report_exempt === 1 ? '有' : '無',
+        'パスワード': '', // Don't export passwords
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'ユーザー一覧');
+
+      const fileName = `users_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      setSuccessMessage('Excelファイルをエクスポートしました');
+    } catch (err) {
+      setError('Excelファイルのエクスポートに失敗しました');
+      console.error(err);
+    }
+  };
+
+  // Excel Import
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      // Get default password from system settings (or use a default)
+      const DEFAULT_PASSWORD = 'Welcome123!'; // This should come from system settings
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of jsonData) {
+        try {
+          // Map role label back to role code
+          const roleEntry = Object.entries(ROLE_LABELS).find(([_, label]) => label === row['ロール']);
+          const role = roleEntry ? roleEntry[0] as UserRole : 'user';
+
+          const createData: CreateUserData = {
+            employeeId: row['社員番号'],
+            name: row['名前'],
+            email: row['メール'],
+            password: row['パスワード'] || DEFAULT_PASSWORD, // Use default password if empty
+            department: row['部署'],
+            role: role,
+          };
+
+          await userService.create(createData);
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          console.error('Failed to import user:', row['社員番号'], err);
+        }
+      }
+
+      if (successCount > 0) {
+        setSuccessMessage(`${successCount}件のユーザーをインポートしました${errorCount > 0 ? ` (${errorCount}件失敗)` : ''}`);
+        fetchUsers();
+      } else {
+        setError('ユーザーのインポートに失敗しました');
+      }
+    } catch (err) {
+      setError('Excelファイルの読み込みに失敗しました');
+      console.error(err);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const isAdminUser = (user: UserWithExempt) => user.role === 'admin';
 
   return (
@@ -297,9 +388,24 @@ const UserListPage: React.FC = () => {
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           ユーザー管理
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateOpen}>
-          新規ユーザー
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+          <Button variant="outlined" startIcon={<ImportIcon />} onClick={handleImportClick}>
+            インポート
+          </Button>
+          <Button variant="outlined" startIcon={<ExportIcon />} onClick={handleExport}>
+            エクスポート
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateOpen}>
+            新規ユーザー
+          </Button>
+        </Box>
       </Box>
 
       {isLoading ? (

@@ -22,6 +22,7 @@ export interface Team {
   leader_id: number | null;
   leader_name: string | null;
   description: string | null;
+  webhook_url: string | null;
   is_active: number;
   member_count: number;
   created_at: string;

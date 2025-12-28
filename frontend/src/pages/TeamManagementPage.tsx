@@ -83,6 +83,7 @@ const TeamManagementPage: React.FC = () => {
     department_id: 0,
     description: '',
     leader_id: null as number | null,
+    webhook_url: '',
   });
 
   // Member management states
@@ -129,6 +130,7 @@ const TeamManagementPage: React.FC = () => {
       department_id: departments[0]?.id || 0,
       description: '',
       leader_id: null,
+      webhook_url: '',
     });
     setOpenCreateDialog(true);
   };
@@ -140,6 +142,7 @@ const TeamManagementPage: React.FC = () => {
       department_id: team.department_id,
       description: team.description || '',
       leader_id: team.leader_id,
+      webhook_url: team.webhook_url || '',
     });
     setOpenEditDialog(true);
   };
@@ -165,7 +168,10 @@ const TeamManagementPage: React.FC = () => {
 
   const handleCreate = async () => {
     try {
-      await teamService.create(formData);
+      await teamService.create({
+        ...formData,
+        leader_id: formData.leader_id ?? undefined,
+      });
       setSuccess('チームを作成しました');
       setOpenCreateDialog(false);
       fetchData();
@@ -183,6 +189,7 @@ const TeamManagementPage: React.FC = () => {
         name: formData.name,
         description: formData.description,
         leader_id: formData.leader_id,
+        webhook_url: formData.webhook_url,
       });
       setSuccess('チームを更新しました');
       setOpenEditDialog(false);
@@ -420,6 +427,14 @@ const TeamManagementPage: React.FC = () => {
               multiline
               rows={2}
             />
+            <TextField
+              label="Webhook URL (Google Chat/Teams)"
+              value={formData.webhook_url}
+              onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
+              fullWidth
+              placeholder="https://chat.googleapis.com/v1/spaces/..."
+              helperText="週次報告が送信されるWebhook URL"
+            />
           </Box>
         </DialogContent>
         <DialogActions>
@@ -468,6 +483,14 @@ const TeamManagementPage: React.FC = () => {
               fullWidth
               multiline
               rows={2}
+            />
+            <TextField
+              label="Webhook URL (Google Chat/Teams)"
+              value={formData.webhook_url}
+              onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
+              fullWidth
+              placeholder="https://chat.googleapis.com/v1/spaces/..."
+              helperText="週次報告が送信されるWebhook URL"
             />
           </Box>
         </DialogContent>

@@ -28,7 +28,7 @@ export const i18nMiddleware = (req: Request, res: Response, next: NextFunction) 
 
   i18n.setLocale(locale);
   req.__ = (phrase: string, replacements?: Record<string, string>) => {
-    return i18n.__(phrase, replacements);
+    return replacements ? i18n.__(phrase, replacements) : i18n.__(phrase);
   };
 
   next();
