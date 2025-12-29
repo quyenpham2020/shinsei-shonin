@@ -215,13 +215,10 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
           startIcon={<HomeIcon />}
           onClick={handleBackToPortal}
           size="small"
-          sx={{ mb: 1, color: 'text.secondary' }}
+          sx={{ color: 'text.secondary' }}
         >
           {t('common:backToPortal')}
         </Button>
-        <Typography variant="subtitle1" noWrap component="div" sx={{ fontWeight: 700 }}>
-          {system?.name || t('common:system')}
-        </Typography>
       </Toolbar>
       <Divider />
       <List>

@@ -123,6 +123,8 @@
     "changeLanguage": "Đổi ngôn ngữ"
   },
   "backToPortal": "Quay lại Portal",
+  "changePassword": "Đổi mật khẩu",
+  "logout": "Đăng xuất",
   "system": "Hệ thống",
   "page": "Trang",
   "applicationEdit": "Sửa đơn",

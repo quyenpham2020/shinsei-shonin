@@ -123,6 +123,8 @@
     "changeLanguage": "言語を変更"
   },
   "backToPortal": "ポータルに戻る",
+  "changePassword": "パスワード変更",
+  "logout": "ログアウト",
   "system": "システム",
   "page": "ページ",
   "applicationEdit": "申請編集",
