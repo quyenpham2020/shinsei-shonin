@@ -29,7 +29,6 @@ services:
     name: shinsei-shonin-frontend
     runtime: static
     env: static
-    region: singapore
     plan: free
     buildCommand: cd frontend && npm install && VITE_API_URL=https://shinsei-shonin-backend.onrender.com npm run build
     staticPublishPath: frontend/dist
