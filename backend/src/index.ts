@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { config } from './config/env';
-import { initDatabase } from './config/database';
+import { initDatabase, initializeSchema } from './config/database';
 import { i18nMiddleware } from './middlewares/i18n';
 import authRoutes from './routes/auth';
 import applicationRoutes from './routes/applications';
@@ -57,8 +57,11 @@ app.get('/api/health', (req, res) => {
 // Initialize database and start server
 async function start() {
   try {
-    await initDatabase();
-    console.log('Database initialized');
+    initDatabase();
+    console.log('Database connection initialized');
+
+    await initializeSchema();
+    console.log('Database schema initialized');
 
     // Initialize scheduler for Friday reminders
     initScheduler();

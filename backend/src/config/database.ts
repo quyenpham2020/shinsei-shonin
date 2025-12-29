@@ -1,463 +1,352 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import fs from 'fs';
-import path from 'path';
+import { Pool, QueryResult } from 'pg';
+import dotenv from 'dotenv';
 
-const dbPath = path.join(__dirname, '../../data/database.sqlite');
-const dataDir = path.dirname(dbPath);
+dotenv.config();
 
-// Ensure data directory exists
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+// PostgreSQL connection pool
+let pool: Pool;
 
-let db: SqlJsDatabase;
+// Initialize PostgreSQL connection
+export function initDatabase(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/shinsei_shonin',
+      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+    });
 
-export async function initDatabase(): Promise<SqlJsDatabase> {
-  const SQL = await initSqlJs();
+    pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
+      process.exit(-1);
+    });
 
-  // Load existing database or create new one
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(fileBuffer);
-  } else {
-    db = new SQL.Database();
+    console.log('PostgreSQL connection pool initialized');
   }
 
-  // Initialize tables
-  db.run(`
+  return pool;
+}
+
+// Get database instance
+export function getDatabase(): Pool {
+  if (!pool) {
+    return initDatabase();
+  }
+  return pool;
+}
+
+// Helper functions for database operations
+export async function query(text: string, params?: any[]): Promise<QueryResult> {
+  const db = getDatabase();
+  return db.query(text, params);
+}
+
+export async function getOne(sql: string, params?: any[]): Promise<any> {
+  const result = await query(sql, params);
+  return result.rows[0];
+}
+
+export async function getAll(sql: string, params?: any[]): Promise<any[]> {
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+export async function runQuery(sql: string, params?: any[]): Promise<QueryResult> {
+  return query(sql, params);
+}
+
+// Initialize database schema
+export async function initializeSchema(): Promise<void> {
+  const db = getDatabase();
+
+  // Create users table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      employee_id TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      department TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'user',
-      must_change_password INTEGER NOT NULL DEFAULT 0,
-      password_changed_at DATETIME,
-      password_reset_token TEXT,
-      password_reset_expires DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      id SERIAL PRIMARY KEY,
+      employee_id VARCHAR(50) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      department VARCHAR(255) NOT NULL,
+      role VARCHAR(50) NOT NULL DEFAULT 'user',
+      must_change_password BOOLEAN NOT NULL DEFAULT false,
+      password_changed_at TIMESTAMP,
+      password_reset_token VARCHAR(255),
+      password_reset_expires TIMESTAMP,
+      team_id INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // Add new columns if they don't exist (for existing databases)
-  try {
-    db.run(`ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`);
-  } catch (e) { /* Column may already exist */ }
-  try {
-    db.run(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`);
-  } catch (e) { /* Column may already exist */ }
-  try {
-    db.run(`ALTER TABLE users ADD COLUMN password_reset_token TEXT`);
-  } catch (e) { /* Column may already exist */ }
-  try {
-    db.run(`ALTER TABLE users ADD COLUMN password_reset_expires DATETIME`);
-  } catch (e) { /* Column may already exist */ }
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS applications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      application_number TEXT UNIQUE,
-      title TEXT NOT NULL,
-      type TEXT NOT NULL,
+  // Create departments table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS departments (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
       description TEXT,
-      amount REAL,
-      status TEXT NOT NULL DEFAULT 'pending',
+      manager_id INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create application_types table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS application_types (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      default_approver_id INTEGER,
+      requires_amount BOOLEAN DEFAULT false,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (default_approver_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create applications table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS applications (
+      id SERIAL PRIMARY KEY,
+      application_number VARCHAR(50) UNIQUE,
+      title VARCHAR(500) NOT NULL,
+      type VARCHAR(255) NOT NULL,
+      description TEXT,
+      amount DECIMAL(15, 2),
+      status VARCHAR(50) NOT NULL DEFAULT 'pending',
       applicant_id INTEGER NOT NULL,
       approver_id INTEGER,
       department_id INTEGER,
       preferred_date DATE,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      approved_at DATETIME,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      approved_at TIMESTAMP,
       rejection_reason TEXT,
-      FOREIGN KEY (applicant_id) REFERENCES users(id),
-      FOREIGN KEY (approver_id) REFERENCES users(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id)
+      FOREIGN KEY (applicant_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (approver_id) REFERENCES users(id) ON DELETE SET NULL,
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
     )
   `);
 
-  // Helper function to safely add column if it doesn't exist
-  const addColumnIfNotExists = (table: string, column: string, type: string) => {
-    try {
-      const tableInfo = db.exec(`PRAGMA table_info(${table})`);
-      const columns = tableInfo[0]?.values?.map((row: any) => row[1]) || [];
-      if (!columns.includes(column)) {
-        db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
-        console.log(`Added column ${column} to ${table}`);
-      }
-    } catch (e) {
-      console.error(`Error adding column ${column} to ${table}:`, e);
-    }
-  };
-
-  // Add new columns to applications if they don't exist
-  addColumnIfNotExists('applications', 'application_number', 'TEXT');
-  addColumnIfNotExists('applications', 'department_id', 'INTEGER');
-  addColumnIfNotExists('applications', 'preferred_date', 'DATE');
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS comments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      application_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
-      content TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (application_id) REFERENCES applications(id),
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS departments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      description TEXT,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Add is_active column to departments if it doesn't exist
-  try {
-    db.run(`ALTER TABLE departments ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`);
-  } catch (e) { /* Column may already exist */ }
-
-  db.run(`
+  // Create approvers table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS approvers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
-      department_id INTEGER NOT NULL,
-      approval_level INTEGER NOT NULL DEFAULT 1,
-      max_amount REAL,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id),
-      UNIQUE(user_id, department_id)
+      department_id INTEGER,
+      application_type VARCHAR(255),
+      can_approve_amount DECIMAL(15, 2),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
     )
   `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS application_types (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      description TEXT,
-      requires_amount INTEGER NOT NULL DEFAULT 0,
-      requires_attachment INTEGER NOT NULL DEFAULT 0,
-      approval_levels INTEGER NOT NULL DEFAULT 1,
-      display_order INTEGER NOT NULL DEFAULT 0,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS attachments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+  // Create comments table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id SERIAL PRIMARY KEY,
       application_id INTEGER NOT NULL,
-      original_name TEXT NOT NULL,
-      stored_name TEXT NOT NULL,
-      mime_type TEXT NOT NULL,
-      size INTEGER NOT NULL,
-      uploaded_by INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
-      FOREIGN KEY (uploaded_by) REFERENCES users(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS notifications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
-      type TEXT NOT NULL,
-      title TEXT NOT NULL,
-      message TEXT NOT NULL,
-      link TEXT,
-      is_read INTEGER NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      read_at DATETIME,
+      comment TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
-    // Weekly Reports table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS weekly_reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      week_start DATE NOT NULL,
-      week_end DATE NOT NULL,
-      content TEXT NOT NULL,
-      achievements TEXT,
-      challenges TEXT,
-      next_week_plan TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, week_start)
+  // Create attachments table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER NOT NULL,
+      filename VARCHAR(255) NOT NULL,
+      original_filename VARCHAR(255) NOT NULL,
+      filepath VARCHAR(500) NOT NULL,
+      mimetype VARCHAR(100),
+      size INTEGER,
+      uploaded_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+      FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
-  // Favorites table (for applications)
-  db.run(`
+  // Create favorites table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS favorites (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
       application_id INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
       UNIQUE(user_id, application_id)
     )
   `);
 
-  // Page Favorites table (for bookmarking any page/URL)
-  db.run(`
+  // Create page_favorites table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS page_favorites (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
-      url TEXT NOT NULL,
-      title TEXT NOT NULL,
-      icon TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      page_path VARCHAR(255) NOT NULL,
+      page_name VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, url)
+      UNIQUE(user_id, page_path)
     )
   `);
 
-  // User System Access table (for managing which users can access which systems)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS user_system_access (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      system_id TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, system_id)
-    )
-  `);
-
-  // Teams table (small teams within departments, led by onsite leaders)
-  db.run(`
+  // Create teams table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS teams (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      department_id INTEGER NOT NULL,
-      leader_id INTEGER,
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
       description TEXT,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+      leader_id INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 
-  // Add team_id column to users table for team membership
-  addColumnIfNotExists('users', 'team_id', 'INTEGER');
-
-  // Add department_id column to users table for proper foreign key relationship
-  addColumnIfNotExists('users', 'department_id', 'INTEGER');
-
-  // Add webhook_url to teams table for Google Chat/Teams integration
-  addColumnIfNotExists('teams', 'webhook_url', 'TEXT');
-
-  // Add weekly_report_exempt column (user doesn't need to submit weekly reports)
-  addColumnIfNotExists('users', 'weekly_report_exempt', 'INTEGER DEFAULT 0');
-
-  // System settings table for feature toggles
-  db.run(`
-    CREATE TABLE IF NOT EXISTS system_settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      setting_key TEXT UNIQUE NOT NULL,
-      setting_value TEXT NOT NULL,
-      description TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Feedback submissions table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS feedback (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+  // Create team_members table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS team_members (
+      id SERIAL PRIMARY KEY,
+      team_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
-      category TEXT NOT NULL,
-      subject TEXT NOT NULL,
-      content TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      admin_response TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      responded_at DATETIME,
-      responded_by INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (responded_by) REFERENCES users(id)
+      UNIQUE(team_id, user_id)
     )
   `);
 
-  // Insert default system settings if they don't exist
-  const feedbackSettingExists = db.exec(`SELECT 1 FROM system_settings WHERE setting_key = 'feedback_enabled'`);
-  if (!feedbackSettingExists || feedbackSettingExists.length === 0) {
-    db.run(`INSERT INTO system_settings (setting_key, setting_value, description) VALUES ('feedback_enabled', '1', 'Enable/disable feedback system')`);
-  }
-
-  // Customers table for revenue management
-  db.run(`
+  // Create customers table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS customers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      description TEXT,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      code VARCHAR(50) UNIQUE,
+      contact_person VARCHAR(255),
+      email VARCHAR(255),
+      phone VARCHAR(50),
+      address TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // Customer-Team mapping for access control
-  db.run(`
+  // Create customer_teams table
+  await db.query(`
     CREATE TABLE IF NOT EXISTS customer_teams (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       customer_id INTEGER NOT NULL,
       team_id INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
       FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
       UNIQUE(customer_id, team_id)
     )
   `);
 
-  // Revenue records table - monthly revenue data
-  db.run(`
-    CREATE TABLE IF NOT EXISTS revenue_records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+  // Create revenue table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS revenue (
+      id SERIAL PRIMARY KEY,
       customer_id INTEGER NOT NULL,
+      team_id INTEGER NOT NULL,
       year INTEGER NOT NULL,
       month INTEGER NOT NULL,
-      mm_onsite REAL NOT NULL DEFAULT 0,
-      mm_offshore REAL NOT NULL DEFAULT 0,
-      unit_price REAL NOT NULL DEFAULT 0,
-      total_amount REAL NOT NULL DEFAULT 0,
+      mm_onsite DECIMAL(10, 2) DEFAULT 0,
+      mm_offshore DECIMAL(10, 2) DEFAULT 0,
+      unit_price_onsite DECIMAL(15, 2) DEFAULT 0,
+      unit_price_offshore DECIMAL(15, 2) DEFAULT 0,
+      unit_price DECIMAL(15, 2) DEFAULT 0,
+      total_amount DECIMAL(15, 2) DEFAULT 0,
+      forecast_amount DECIMAL(15, 2),
       notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      created_by INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-      FOREIGN KEY (created_by) REFERENCES users(id),
-      UNIQUE(customer_id, year, month)
+      FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
     )
   `);
 
-  // Add separate unit price columns for onsite and offshore
-  try {
-    db.run(`ALTER TABLE revenue_records ADD COLUMN unit_price_onsite REAL NOT NULL DEFAULT 0`);
-  } catch (e) { /* Column may already exist */ }
-  try {
-    db.run(`ALTER TABLE revenue_records ADD COLUMN unit_price_offshore REAL NOT NULL DEFAULT 0`);
-  } catch (e) { /* Column may already exist */ }
-
-  // Reminder logs table - tracks when reminders were sent
-  db.run(`
-    CREATE TABLE IF NOT EXISTS reminder_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+  // Create feedback table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
-      reminder_type TEXT NOT NULL,
-      week_start_date TEXT NOT NULL,
-      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      category VARCHAR(100),
+      subject VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
-  // System Settings table updates - add default settings if they don't exist
-  const insertSettingIfNotExists = (key: string, value: string, description: string) => {
-    const exists = db.exec(`SELECT 1 FROM system_settings WHERE setting_key = '${key}'`);
-    if (!exists || exists.length === 0) {
-      db.run(`INSERT INTO system_settings (setting_key, setting_value, description) VALUES (?, ?, ?)`, [key, value, description]);
-    }
-  };
+  // Create system_settings table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      id SERIAL PRIMARY KEY,
+      setting_key VARCHAR(255) UNIQUE NOT NULL,
+      setting_value TEXT,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-  // Email configuration settings
-  insertSettingIfNotExists('email_host', '', 'SMTP host for sending emails (e.g., smtp.gmail.com)');
-  insertSettingIfNotExists('email_port', '587', 'SMTP port (587 for TLS, 465 for SSL)');
-  insertSettingIfNotExists('email_secure', 'false', 'Use secure connection (true for SSL on port 465)');
-  insertSettingIfNotExists('email_user', '', 'SMTP username/email address');
-  insertSettingIfNotExists('email_password', '', 'SMTP password or app password');
-  insertSettingIfNotExists('email_from', '', 'From email address for sent emails');
+  // Create weekly_reports table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS weekly_reports (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      week_start_date DATE NOT NULL,
+      week_end_date DATE NOT NULL,
+      achievements TEXT,
+      challenges TEXT,
+      next_week_plan TEXT,
+      status VARCHAR(50) DEFAULT 'draft',
+      submitted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, week_start_date)
+    )
+  `);
 
-  // Escalation settings
-  insertSettingIfNotExists('enable_sunday_escalation', 'true', 'Enable Sunday 7 PM escalation to GM/BOD');
-  insertSettingIfNotExists('escalation_emails', '', 'Comma-separated email addresses for GM/BOD escalation');
+  // Create reminder_logs table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS reminder_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      reminder_type VARCHAR(50) NOT NULL,
+      week_start_date DATE NOT NULL,
+      sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
 
-saveDatabase();
-  return db;
+  // Create system_access table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS system_access (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      page_path VARCHAR(255) NOT NULL,
+      can_view BOOLEAN DEFAULT false,
+      can_create BOOLEAN DEFAULT false,
+      can_edit BOOLEAN DEFAULT false,
+      can_delete BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, page_path)
+    )
+  `);
+
+  console.log('Database schema initialized successfully');
 }
 
-export function getDatabase(): SqlJsDatabase {
-  if (!db) {
-    throw new Error('Database not initialized. Call initDatabase() first.');
-  }
-  return db;
-}
-
-export function saveDatabase(): void {
-  if (db) {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
-  }
-}
-
-// Helper functions to match better-sqlite3 API style
-export function runQuery(sql: string, params: (string | number | null)[] = []): { lastInsertRowid: number; changes: number } {
-  const database = getDatabase();
-  database.run(sql, params);
-  const result = database.exec('SELECT last_insert_rowid() as id, changes() as changes');
-  saveDatabase();
-  return {
-    lastInsertRowid: result[0]?.values[0]?.[0] as number || 0,
-    changes: result[0]?.values[0]?.[1] as number || 0,
-  };
-}
-
-export function getOne<T>(sql: string, params: (string | number | null)[] = []): T | undefined {
-  const database = getDatabase();
-  const stmt = database.prepare(sql);
-  stmt.bind(params);
-
-  if (stmt.step()) {
-    const columns = stmt.getColumnNames();
-    const values = stmt.get();
-    const row: Record<string, unknown> = {};
-    columns.forEach((col, idx) => {
-      row[col] = values[idx];
-    });
-    stmt.free();
-    return row as T;
-  }
-  stmt.free();
-  return undefined;
-}
-
-export function getAll<T>(sql: string, params: (string | number | null)[] = []): T[] {
-  const database = getDatabase();
-  const stmt = database.prepare(sql);
-  stmt.bind(params);
-
-  const results: T[] = [];
-  const columns = stmt.getColumnNames();
-
-  while (stmt.step()) {
-    const values = stmt.get();
-    const row: Record<string, unknown> = {};
-    columns.forEach((col, idx) => {
-      row[col] = values[idx];
-    });
-    results.push(row as T);
-  }
-  stmt.free();
-  return results;
-}
+// Export the pool as default db
+export default getDatabase;
