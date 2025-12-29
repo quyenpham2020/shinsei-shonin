@@ -22,11 +22,17 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import weeklyReportService, {
@@ -85,7 +91,15 @@ const WeeklyReportPage: React.FC = () => {
   const [memberDetailLoading, setMemberDetailLoading] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
+  // Export filters
+  const [exportDepartment, setExportDepartment] = useState('');
+  const [exportTeam, setExportTeam] = useState('');
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [exporting, setExporting] = useState(false);
+
   const isLeader = user?.role === 'approver' || user?.role === 'admin';
+  const canExport = ['onsite_leader', 'gm', 'bod', 'admin'].includes(user?.role || '');
 
   useEffect(() => {
     loadComparisonData();
@@ -173,6 +187,35 @@ const WeeklyReportPage: React.FC = () => {
       setErrorMessage('Overview生成に失敗しました');
     } finally {
       setGeneratingOverview(false);
+    }
+  };
+
+  const handleExportToExcel = async () => {
+    setExporting(true);
+    try {
+      const blob = await weeklyReportService.exportToExcel({
+        department: exportDepartment || undefined,
+        team: exportTeam || undefined,
+        startDate: exportStartDate || undefined,
+        endDate: exportEndDate || undefined,
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `weekly_reports_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setSuccessMessage('Excelファイルをダウンロードしました');
+    } catch (error) {
+      console.error('Failed to export to Excel:', error);
+      setErrorMessage('Excel出力に失敗しました');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -437,6 +480,75 @@ const WeeklyReportPage: React.FC = () => {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   メンバー週次報告一覧（直近3週間）
                 </Typography>
+
+                {/* Export Section */}
+                {canExport && (
+                  <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
+                      Excel出力
+                    </Typography>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={6} md={3}>
+                        <TextField
+                          fullWidth
+                          label="部署"
+                          size="small"
+                          value={exportDepartment}
+                          onChange={(e) => setExportDepartment(e.target.value)}
+                          placeholder="全て"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <TextField
+                          fullWidth
+                          label="チーム"
+                          size="small"
+                          value={exportTeam}
+                          onChange={(e) => setExportTeam(e.target.value)}
+                          placeholder="全て"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="開始日"
+                          type="date"
+                          size="small"
+                          value={exportStartDate}
+                          onChange={(e) => setExportStartDate(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="終了日"
+                          type="date"
+                          size="small"
+                          value={exportEndDate}
+                          onChange={(e) => setExportEndDate(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={12} md={2}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="primary"
+                          startIcon={exporting ? <CircularProgress size={20} /> : <FileDownloadIcon />}
+                          onClick={handleExportToExcel}
+                          disabled={exporting}
+                        >
+                          {exporting ? '出力中...' : 'Excel出力'}
+                        </Button>
+                      </Grid>
+                    </Grid>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      ※ フィルターを指定しない場合、全てのデータが出力されます
+                    </Typography>
+                  </Paper>
+                )}
+
                 <TableContainer component={Paper} sx={{ mb: 2 }}>
                   <Table size="small">
                     <TableHead>

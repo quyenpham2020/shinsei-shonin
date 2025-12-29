@@ -188,6 +188,24 @@ export const weeklyReportService = {
     const response = await api.post('/weekly-reports/generate-overview', data);
     return response.data;
   },
+
+  exportToExcel: async (filters: {
+    department?: string;
+    team?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Blob> => {
+    const params = new URLSearchParams();
+    if (filters.department) params.append('department', filters.department);
+    if (filters.team) params.append('team', filters.team);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+
+    const response = await api.get('/weekly-reports/export?' + params.toString(), {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 
 export default weeklyReportService;

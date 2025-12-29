@@ -3,6 +3,7 @@ import { getOne, getAll, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
 import { getUsersUnderAuthority } from '../services/permissionService';
 import Anthropic from '@anthropic-ai/sdk';
+import * as XLSX from 'xlsx';
 
 interface WeeklyReport {
   id: number;
@@ -502,5 +503,140 @@ Overview:`,
     console.error('Generate overview error:', error);
     const errorMessage = error?.message || 'Overview生成に失敗しました';
     res.status(500).json({ message: errorMessage });
+  }
+};
+
+// Export weekly reports to Excel with filters
+export const exportToExcel = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+
+    // Check permissions - only for onsite_leader, gm, bod, admin
+    const allowedRoles = ['onsite_leader', 'gm', 'bod', 'admin'];
+    if (!allowedRoles.includes(user.role)) {
+      res.status(403).json({ message: '権限がありません' });
+      return;
+    }
+
+    const { department, team, startDate, endDate } = req.query;
+
+    // Build query based on user role and filters
+    let query = `
+      SELECT
+        u.employee_id,
+        u.name,
+        u.department,
+        t.name as team_name,
+        wr.week_start_date,
+        wr.week_end_date,
+        wr.content,
+        wr.achievements,
+        wr.challenges,
+        wr.next_week_plan,
+        wr.overview,
+        wr.created_at,
+        wr.updated_at
+      FROM weekly_reports wr
+      LEFT JOIN users u ON wr.user_id = u.id
+      LEFT JOIN teams t ON u.team_id = t.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    // Apply role-based filtering
+    if (user.role === 'onsite_leader') {
+      const allowedUserIds = await getUsersUnderAuthority(user.id);
+      if (allowedUserIds.length === 0) {
+        res.status(200).json({ data: [] });
+        return;
+      }
+      const placeholders = allowedUserIds.map(() => '?').join(',');
+      query += ` AND wr.user_id IN (${placeholders})`;
+      params.push(...allowedUserIds);
+    } else if (user.role === 'gm') {
+      // GM can see their department
+      query += ` AND u.department = ?`;
+      params.push(user.department);
+    }
+    // admin and bod can see all
+
+    // Apply additional filters
+    if (department) {
+      query += ` AND u.department = ?`;
+      params.push(department);
+    }
+
+    if (team) {
+      query += ` AND t.name = ?`;
+      params.push(team);
+    }
+
+    if (startDate) {
+      query += ` AND wr.week_start_date >= ?`;
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      query += ` AND wr.week_start_date <= ?`;
+      params.push(endDate);
+    }
+
+    query += ` ORDER BY wr.week_start_date DESC, u.department, u.name`;
+
+    const reports = await getAll(query, params);
+
+    // Format data for Excel
+    const excelData = reports.map((report: any) => ({
+      '社員番号': report.employee_id,
+      '氏名': report.name,
+      '部署': report.department,
+      'チーム': report.team_name || '',
+      '週開始日': report.week_start_date,
+      '週終了日': report.week_end_date,
+      '報告内容': report.content || '',
+      '成果・達成事項': report.achievements || '',
+      '課題・問題点': report.challenges || '',
+      '来週の予定': report.next_week_plan || '',
+      'Overview': report.overview || '',
+      '作成日時': report.created_at,
+      '更新日時': report.updated_at,
+    }));
+
+    // Create workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '週次報告');
+
+    // Set column widths
+    const columnWidths = [
+      { wch: 12 }, // 社員番号
+      { wch: 15 }, // 氏名
+      { wch: 15 }, // 部署
+      { wch: 15 }, // チーム
+      { wch: 12 }, // 週開始日
+      { wch: 12 }, // 週終了日
+      { wch: 40 }, // 報告内容
+      { wch: 30 }, // 成果
+      { wch: 30 }, // 課題
+      { wch: 30 }, // 来週予定
+      { wch: 35 }, // Overview
+      { wch: 18 }, // 作成日時
+      { wch: 18 }, // 更新日時
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    // Generate buffer
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set response headers
+    const filename = `weekly_reports_${new Date().toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    // Send file
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Export to Excel error:', error);
+    res.status(500).json({ message: 'Excel出力に失敗しました' });
   }
 };
