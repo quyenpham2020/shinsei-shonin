@@ -20,6 +20,7 @@ export const teamService = {
     department_id: number;
     description?: string;
     leader_id?: number;
+    webhook_url?: string;
   }): Promise<Team> {
     const response = await api.post('/teams', data);
     return response.data;
@@ -31,6 +32,7 @@ export const teamService = {
     description?: string;
     leader_id?: number | null;
     is_active?: number;
+    webhook_url?: string;
   }): Promise<Team> {
     const response = await api.put(`/teams/${id}`, data);
     return response.data;

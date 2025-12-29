@@ -201,7 +201,7 @@ const generateApplicationNumber = (): string => {
 // 新規申請作成
 export const createApplication = (req: AuthRequest, res: Response): void => {
   try {
-    const { title, type, description, amount, isDraft, departmentId, preferredDate } = req.body;
+    const { title, type, description, amount, isDraft, departmentId, preferredDate, approverId } = req.body;
     const user = req.user!;
 
     // 下書きの場合はタイトルのみ必須
@@ -229,9 +229,9 @@ export const createApplication = (req: AuthRequest, res: Response): void => {
     const finalDepartmentId = user.role === 'admin' && departmentId ? departmentId : null;
 
     const result = runQuery(`
-      INSERT INTO applications (application_number, title, type, description, amount, applicant_id, status, department_id, preferred_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [applicationNumber, title || '', type || '', description || null, amount || null, user.id, status, finalDepartmentId, preferredDate || null]);
+      INSERT INTO applications (application_number, title, type, description, amount, applicant_id, approver_id, status, department_id, preferred_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [applicationNumber, title || '', type || '', description || null, amount || null, user.id, approverId || null, status, finalDepartmentId, preferredDate || null]);
 
     const newApplication = getOne('SELECT * FROM applications WHERE id = ?', [result.lastInsertRowid]);
 
@@ -246,7 +246,7 @@ export const createApplication = (req: AuthRequest, res: Response): void => {
 export const updateApplication = (req: AuthRequest, res: Response): void => {
   try {
     const { id } = req.params;
-    const { title, type, description, amount, isDraft } = req.body;
+    const { title, type, description, amount, isDraft, approverId } = req.body;
     const user = req.user!;
 
     const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
@@ -277,9 +277,9 @@ export const updateApplication = (req: AuthRequest, res: Response): void => {
 
     runQuery(`
       UPDATE applications
-      SET title = ?, type = ?, description = ?, amount = ?, status = ?, updated_at = datetime('now')
+      SET title = ?, type = ?, description = ?, amount = ?, approver_id = ?, status = ?, updated_at = datetime('now')
       WHERE id = ?
-    `, [title || '', type || '', description || null, amount || null, newStatus, Number(id)]);
+    `, [title || '', type || '', description || null, amount || null, approverId || null, newStatus, Number(id)]);
 
     const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
 

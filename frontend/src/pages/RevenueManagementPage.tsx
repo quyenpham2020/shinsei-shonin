@@ -21,17 +21,25 @@ import {
   Select,
   MenuItem,
   Chip,
+  Collapse,
+  ButtonGroup,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Assessment as AssessmentIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  UnfoldMore as ExpandAllIcon,
+  UnfoldLess as CollapseAllIcon,
 } from '@mui/icons-material';
 import { revenueService, RevenueRecord, RevenueInput } from '../services/revenueService';
 import { customerService, Customer } from '../services/customerService';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+
+type GroupByMode = 'none' | 'customer' | 'team';
 
 const RevenueManagementPage: React.FC = () => {
   const { t } = useTranslation();
@@ -51,6 +59,8 @@ const RevenueManagementPage: React.FC = () => {
     unit_price_offshore: 0,
     notes: '',
   });
+  const [groupBy, setGroupBy] = useState<GroupByMode>('none');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchRecords();
@@ -146,6 +156,38 @@ const RevenueManagementPage: React.FC = () => {
     }).format(amount);
   };
 
+  // Group revenue records
+  const groupedData: Record<string, RevenueRecord[]> = {};
+  if (groupBy !== 'none') {
+    records.forEach(record => {
+      const key = groupBy === 'customer'
+        ? record.customer_name || '不明'
+        : (record.team_names?.join(', ') || '未割り当て');
+      if (!groupedData[key]) {
+        groupedData[key] = [];
+      }
+      groupedData[key].push(record);
+    });
+  }
+
+  const toggleGroup = (groupName: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupName)) {
+      newExpanded.delete(groupName);
+    } else {
+      newExpanded.add(groupName);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const expandAll = () => {
+    setExpandedGroups(new Set(Object.keys(groupedData)));
+  };
+
+  const collapseAll = () => {
+    setExpandedGroups(new Set());
+  };
+
   if (loading) {
     return <Typography>Loading...</Typography>;
   }
@@ -154,15 +196,45 @@ const RevenueManagementPage: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">{t('revenue:revenueManagement')}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          {t('revenue:revenue.addRevenue')}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>グループ表示</InputLabel>
+            <Select
+              value={groupBy}
+              label="グループ表示"
+              onChange={(e) => {
+                setGroupBy(e.target.value as GroupByMode);
+                setExpandedGroups(new Set());
+              }}
+            >
+              <MenuItem value="none">なし</MenuItem>
+              <MenuItem value="customer">顧客別</MenuItem>
+              <MenuItem value="team">チーム別</MenuItem>
+            </Select>
+          </FormControl>
+
+          {groupBy !== 'none' && (
+            <ButtonGroup size="small" variant="outlined">
+              <Button startIcon={<ExpandAllIcon />} onClick={expandAll}>
+                全展開
+              </Button>
+              <Button startIcon={<CollapseAllIcon />} onClick={collapseAll}>
+                全省略
+              </Button>
+            </ButtonGroup>
+          )}
+
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+            {t('revenue:revenue.addRevenue')}
+          </Button>
+        </Box>
       </Box>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
+              {groupBy !== 'none' && <TableCell sx={{ width: 50 }} />}
               <TableCell>{t('revenue:revenue.yearMonth')}</TableCell>
               <TableCell>{t('revenue:customer.name')}</TableCell>
               <TableCell align="right">{t('revenue:revenue.mmOnsite')}</TableCell>
@@ -175,7 +247,8 @@ const RevenueManagementPage: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {records.map((record) => (
+            {groupBy === 'none' ? (
+              records.map((record) => (
               <TableRow key={record.id}>
                 <TableCell>
                   <Chip
@@ -207,7 +280,71 @@ const RevenueManagementPage: React.FC = () => {
                   )}
                 </TableCell>
               </TableRow>
-            ))}
+            ))
+            ) : (
+              Object.keys(groupedData).sort().map((groupName) => (
+                <React.Fragment key={groupName}>
+                  <TableRow sx={{ bgcolor: 'action.hover' }}>
+                    <TableCell>
+                      <IconButton size="small" onClick={() => toggleGroup(groupName)}>
+                        {expandedGroups.has(groupName) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell colSpan={9}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {groupName}
+                        </Typography>
+                        <Chip label={`${groupedData[groupName].length}件`} size="small" />
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={10} sx={{ p: 0, border: 0 }}>
+                      <Collapse in={expandedGroups.has(groupName)} timeout="auto" unmountOnExit>
+                        <Table size="small">
+                          <TableBody>
+                            {groupedData[groupName].map((record) => (
+                              <TableRow key={record.id}>
+                                <TableCell>
+                                  <Chip
+                                    label={`${record.year}年 ${record.month}月`}
+                                    size="small"
+                                    color="primary"
+                                    variant="outlined"
+                                  />
+                                </TableCell>
+                                <TableCell>{record.customer_name}</TableCell>
+                                <TableCell align="right">{record.mm_onsite.toFixed(2)}</TableCell>
+                                <TableCell align="right">{record.mm_offshore.toFixed(2)}</TableCell>
+                                <TableCell align="right">{formatCurrency(record.unit_price_onsite || 0)}</TableCell>
+                                <TableCell align="right">{formatCurrency(record.unit_price_offshore || 0)}</TableCell>
+                                <TableCell align="right">
+                                  <Typography variant="body2" fontWeight="bold">
+                                    {formatCurrency(record.total_amount)}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>{record.notes || '-'}</TableCell>
+                                <TableCell align="right">
+                                  <IconButton size="small" onClick={() => handleOpenDialog(record)}>
+                                    <EditIcon />
+                                  </IconButton>
+                                  {canDelete && (
+                                    <IconButton size="small" onClick={() => handleDelete(record.id)} color="error">
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

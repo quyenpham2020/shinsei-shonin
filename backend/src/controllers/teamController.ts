@@ -10,6 +10,7 @@ interface TeamWithDetails {
   leader_id: number | null;
   leader_name: string | null;
   description: string | null;
+  webhook_url: string | null;
   is_active: number;
   member_count: number;
   created_at: string;
@@ -144,7 +145,7 @@ export const getTeamMembers = async (req: Request, res: Response) => {
 export const createTeam = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { name, department_id, description, leader_id } = req.body;
+    const { name, department_id, description, leader_id, webhook_url } = req.body;
 
     // Get actor's permission info
     const actor = getOne<UserPermissionInfo>(`
@@ -168,9 +169,9 @@ export const createTeam = async (req: Request, res: Response) => {
     }
 
     const result = runQuery(`
-      INSERT INTO teams (name, department_id, description, leader_id)
-      VALUES (?, ?, ?, ?)
-    `, [name, department_id, description || null, leader_id || null]);
+      INSERT INTO teams (name, department_id, description, leader_id, webhook_url)
+      VALUES (?, ?, ?, ?, ?)
+    `, [name, department_id, description || null, leader_id || null, webhook_url || null]);
 
     // If leader is specified, update their role to onsite_leader and assign to team
     if (leader_id) {
@@ -203,7 +204,7 @@ export const updateTeam = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    const { name, description, leader_id, is_active } = req.body;
+    const { name, description, leader_id, webhook_url, is_active } = req.body;
 
     // Get actor's permission info
     const actor = getOne<UserPermissionInfo>(`
@@ -246,9 +247,10 @@ export const updateTeam = async (req: Request, res: Response) => {
         name = COALESCE(?, name),
         description = COALESCE(?, description),
         leader_id = ?,
+        webhook_url = COALESCE(?, webhook_url),
         is_active = COALESCE(?, is_active)
       WHERE id = ?
-    `, [name, description, leader_id || null, is_active, parseInt(id)]);
+    `, [name, description, leader_id || null, webhook_url, is_active, parseInt(id)]);
 
     saveDatabase();
 

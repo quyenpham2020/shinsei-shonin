@@ -6,6 +6,7 @@ export interface RevenueRecord {
   id: number;
   customer_id: number;
   customer_name: string;
+  team_names?: string[];
   year: number;
   month: number;
   mm_onsite: number;
