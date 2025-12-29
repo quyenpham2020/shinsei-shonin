@@ -10,6 +10,8 @@ import userJa from './locales/ja/user.json';
 import validationJa from './locales/ja/validation.json';
 import feedbackJa from './locales/ja/feedback.json';
 import revenueJa from './locales/ja/revenue.json';
+import weeklyReportJa from './locales/ja/weeklyReport.json';
+import passwordJa from './locales/ja/password.json';
 
 import commonEn from './locales/en/common.json';
 import authEn from './locales/en/auth.json';
@@ -18,6 +20,8 @@ import userEn from './locales/en/user.json';
 import validationEn from './locales/en/validation.json';
 import feedbackEn from './locales/en/feedback.json';
 import revenueEn from './locales/en/revenue.json';
+import weeklyReportEn from './locales/en/weeklyReport.json';
+import passwordEn from './locales/en/password.json';
 
 import commonVi from './locales/vi/common.json';
 import authVi from './locales/vi/auth.json';
@@ -26,6 +30,8 @@ import userVi from './locales/vi/user.json';
 import validationVi from './locales/vi/validation.json';
 import feedbackVi from './locales/vi/feedback.json';
 import revenueVi from './locales/vi/revenue.json';
+import weeklyReportVi from './locales/vi/weeklyReport.json';
+import passwordVi from './locales/vi/password.json';
 
 const resources = {
   ja: {
@@ -36,6 +42,8 @@ const resources = {
     validation: validationJa,
     feedback: feedbackJa,
     revenue: revenueJa,
+    weeklyReport: weeklyReportJa,
+    password: passwordJa,
   },
   en: {
     common: commonEn,
@@ -45,6 +53,8 @@ const resources = {
     validation: validationEn,
     feedback: feedbackEn,
     revenue: revenueEn,
+    weeklyReport: weeklyReportEn,
+    password: passwordEn,
   },
   vi: {
     common: commonVi,
@@ -54,6 +64,8 @@ const resources = {
     validation: validationVi,
     feedback: feedbackVi,
     revenue: revenueVi,
+    weeklyReport: weeklyReportVi,
+    password: passwordVi,
   },
 };
 
@@ -64,7 +76,7 @@ i18n
     resources,
     fallbackLng: 'ja',
     defaultNS: 'common',
-    ns: ['common', 'auth', 'application', 'user', 'validation', 'feedback', 'revenue'],
+    ns: ['common', 'auth', 'application', 'user', 'validation', 'feedback', 'revenue', 'weeklyReport', 'password'],
 
     detection: {
       order: ['localStorage', 'navigator'],

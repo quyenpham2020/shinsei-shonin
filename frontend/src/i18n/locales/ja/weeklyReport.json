@@ -1,0 +1,94 @@
+{
+  "title": "週次報告管理",
+  "submitReminder": "週次報告の提出をお願いします",
+  "submitReminderMessage": "Hãy gửi báo cáo tuần ở chỗ dễ nhìn trên web",
+  "notSubmittedYet": "{{weekStart}} 週の報告がまだ提出されていません。下記のフォームから報告を入力してください。",
+  "tabs": {
+    "input": "報告入力",
+    "comparison": "週次比較",
+    "memberList": "メンバー一覧"
+  },
+  "preFilled": "先週の報告内容が入力されています。内容を編集して今週の報告として保存してください。",
+  "form": {
+    "content": "今週の報告内容",
+    "contentPlaceholder": "今週行った業務内容を記載してください",
+    "achievements": "成果・達成事項",
+    "achievementsPlaceholder": "今週達成したことを記載してください",
+    "challenges": "課題・問題点",
+    "challengesPlaceholder": "直面している課題や問題点を記載してください",
+    "nextWeekPlan": "来週の予定",
+    "nextWeekPlanPlaceholder": "来週予定している業務を記載してください",
+    "contentRequired": "報告内容を入力してください"
+  },
+  "overview": {
+    "title": "Overview（部署共有用の簡潔な報告）",
+    "description": "上記の詳細報告からAIが自動的に簡潔なoverviewを生成します。生成後に内容を編集できます。",
+    "generateButton": "Overviewを生成",
+    "generating": "Overview生成中...",
+    "placeholder": "「Overviewを生成」ボタンをクリックするとAIが自動生成します",
+    "helperText": "生成後に内容を確認・編集してから報告を保存してください",
+    "requireContent": "報告内容を入力してから、Overviewを生成してください",
+    "generateSuccess": "Overviewを生成しました。内容を確認・編集してください。",
+    "generateError": "Overview生成に失敗しました"
+  },
+  "buttons": {
+    "save": "報告を保存",
+    "saving": "保存中..."
+  },
+  "messages": {
+    "saveSuccess": "週次報告を保存しました",
+    "saveError": "保存に失敗しました"
+  },
+  "comparison": {
+    "previousWeek": "先週",
+    "currentWeek": "今週",
+    "items": {
+      "content": "報告内容",
+      "achievements": "成果",
+      "challenges": "課題",
+      "nextWeekPlan": "来週予定"
+    },
+    "notSubmitted": "未提出"
+  },
+  "memberList": {
+    "title": "メンバー週次報告一覧（直近3週間）",
+    "thisWeek": "今週",
+    "submitted": "提出済",
+    "notSubmitted": "未提出",
+    "clickToView": "※ メンバーをクリックすると詳細な報告内容を確認できます",
+    "columns": {
+      "employeeId": "社員番号",
+      "name": "氏名",
+      "department": "部門"
+    }
+  },
+  "memberDetail": {
+    "title": "週次報告履歴",
+    "department": "部門",
+    "email": "メール",
+    "noReports": "報告データがありません",
+    "latest": "最新",
+    "updated": "更新",
+    "close": "閉じる",
+    "scrollNote": "※ 横スクロールで過去の報告を確認できます。左から右へ新しい順に表示されています。",
+    "items": {
+      "content": "報告内容",
+      "achievements": "成果・達成事項",
+      "challenges": "課題・問題点",
+      "nextWeekPlan": "来週の予定"
+    }
+  },
+  "export": {
+    "title": "Excel出力",
+    "department": "部署",
+    "team": "チーム",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "exportButton": "Excel出力",
+    "exporting": "出力中...",
+    "allData": "全て",
+    "filterNote": "※ フィルターを指定しない場合、全てのデータが出力されます",
+    "downloadSuccess": "Excelファイルをダウンロードしました",
+    "downloadError": "Excel出力に失敗しました"
+  }
+}

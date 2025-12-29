@@ -1,0 +1,94 @@
+{
+  "title": "Weekly Report Management",
+  "submitReminder": "Please Submit Your Weekly Report",
+  "submitReminderMessage": "Please submit your weekly report in a visible location on the web",
+  "notSubmittedYet": "The report for week {{weekStart}} has not been submitted yet. Please enter your report using the form below.",
+  "tabs": {
+    "input": "Report Input",
+    "comparison": "Weekly Comparison",
+    "memberList": "Member List"
+  },
+  "preFilled": "Last week's report content has been pre-filled. Please edit the content and save it as this week's report.",
+  "form": {
+    "content": "This Week's Report Content",
+    "contentPlaceholder": "Please describe the work you performed this week",
+    "achievements": "Achievements",
+    "achievementsPlaceholder": "Please describe what you accomplished this week",
+    "challenges": "Challenges & Issues",
+    "challengesPlaceholder": "Please describe any challenges or issues you faced",
+    "nextWeekPlan": "Next Week's Plan",
+    "nextWeekPlanPlaceholder": "Please describe the work you plan to do next week",
+    "contentRequired": "Please enter report content"
+  },
+  "overview": {
+    "title": "Overview (Concise Report for Department Sharing)",
+    "description": "AI will automatically generate a concise overview from the detailed report above. You can edit the content after generation.",
+    "generateButton": "Generate Overview",
+    "generating": "Generating Overview...",
+    "placeholder": "Click 'Generate Overview' button to auto-generate with AI",
+    "helperText": "Please review and edit the content before saving your report",
+    "requireContent": "Please enter report content before generating overview",
+    "generateSuccess": "Overview generated successfully. Please review and edit the content.",
+    "generateError": "Failed to generate overview"
+  },
+  "buttons": {
+    "save": "Save Report",
+    "saving": "Saving..."
+  },
+  "messages": {
+    "saveSuccess": "Weekly report saved successfully",
+    "saveError": "Failed to save report"
+  },
+  "comparison": {
+    "previousWeek": "Last Week",
+    "currentWeek": "This Week",
+    "items": {
+      "content": "Report Content",
+      "achievements": "Achievements",
+      "challenges": "Challenges",
+      "nextWeekPlan": "Next Week Plan"
+    },
+    "notSubmitted": "Not Submitted"
+  },
+  "memberList": {
+    "title": "Member Weekly Reports (Last 3 Weeks)",
+    "thisWeek": "This Week",
+    "submitted": "Submitted",
+    "notSubmitted": "Not Submitted",
+    "clickToView": "* Click on a member to view detailed report content",
+    "columns": {
+      "employeeId": "Employee ID",
+      "name": "Name",
+      "department": "Department"
+    }
+  },
+  "memberDetail": {
+    "title": "Weekly Report History",
+    "department": "Department",
+    "email": "Email",
+    "noReports": "No report data available",
+    "latest": "Latest",
+    "updated": "Updated",
+    "close": "Close",
+    "scrollNote": "* Scroll horizontally to view past reports. Displayed in chronological order from left (newest) to right.",
+    "items": {
+      "content": "Report Content",
+      "achievements": "Achievements",
+      "challenges": "Challenges & Issues",
+      "nextWeekPlan": "Next Week's Plan"
+    }
+  },
+  "export": {
+    "title": "Excel Export",
+    "department": "Department",
+    "team": "Team",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "exportButton": "Export to Excel",
+    "exporting": "Exporting...",
+    "allData": "All",
+    "filterNote": "* If no filter is specified, all data will be exported",
+    "downloadSuccess": "Excel file downloaded successfully",
+    "downloadError": "Failed to export to Excel"
+  }
+}
