@@ -21,6 +21,7 @@ import feedbackRoutes from './routes/feedback';
 import settingsRoutes from './routes/settings';
 import customerRoutes from './routes/customers';
 import revenueRoutes from './routes/revenue';
+import seedRoutes from './routes/seed';
 import { initScheduler } from './services/scheduler';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api', seedRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
