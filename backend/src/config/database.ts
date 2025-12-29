@@ -9,9 +9,12 @@ let pool: Pool;
 // Initialize PostgreSQL connection
 export function initDatabase(): Pool {
   if (!pool) {
+    const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/shinsei_shonin';
+    const isProduction = process.env.NODE_ENV === 'production' || databaseUrl.includes('render.com');
+
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/shinsei_shonin',
-      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+      connectionString: databaseUrl,
+      ssl: isProduction ? { rejectUnauthorized: false } : false,
     });
 
     pool.on('error', (err) => {
