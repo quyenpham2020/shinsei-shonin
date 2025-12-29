@@ -11,6 +11,7 @@ import {
   getAllMembersWithReports,
   getMembersReportsLast3Weeks,
   getMemberReports,
+  generateOverview,
 } from '../controllers/weeklyReportController';
 
 const router = Router();
@@ -38,6 +39,9 @@ router.get('/members-3weeks', getMembersReportsLast3Weeks);
 
 // Get all reports for a specific member
 router.get('/member/:userId', getMemberReports);
+
+// Generate overview from detailed report using Claude AI
+router.post('/generate-overview', generateOverview);
 
 // Create or update report
 router.post('/', createOrUpdateReport);

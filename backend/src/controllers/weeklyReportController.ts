@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { getOne, getAll, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
 import { getUsersUnderAuthority } from '../services/permissionService';
+import Anthropic from '@anthropic-ai/sdk';
 
 interface WeeklyReport {
   id: number;
@@ -110,7 +111,7 @@ export const getReportsForComparison = (req: AuthRequest, res: Response): void =
 export const createOrUpdateReport = (req: AuthRequest, res: Response): void => {
   try {
     const user = req.user!;
-    const { content, achievements, challenges, nextWeekPlan, weekStart } = req.body;
+    const { content, achievements, challenges, nextWeekPlan, overview, weekStart } = req.body;
     if (!content) {
       res.status(400).json({ message: '報告内容は必須です' });
       return;
@@ -126,13 +127,13 @@ export const createOrUpdateReport = (req: AuthRequest, res: Response): void => {
     }
     const existingReport = getOne<WeeklyReport>(`SELECT * FROM weekly_reports WHERE user_id = ? AND week_start = ?`, [user.id, targetWeek.weekStart]);
     if (existingReport) {
-      runQuery(`UPDATE weekly_reports SET content = ?, achievements = ?, challenges = ?, next_week_plan = ?, updated_at = datetime('now') WHERE id = ?`,
-        [content, achievements || null, challenges || null, nextWeekPlan || null, existingReport.id]);
+      runQuery(`UPDATE weekly_reports SET content = ?, achievements = ?, challenges = ?, next_week_plan = ?, overview = ?, updated_at = datetime('now') WHERE id = ?`,
+        [content, achievements || null, challenges || null, nextWeekPlan || null, overview || null, existingReport.id]);
       const updatedReport = getOne('SELECT * FROM weekly_reports WHERE id = ?', [existingReport.id]);
       res.json({ message: 'レポートを更新しました', report: updatedReport });
     } else {
-      const result = runQuery(`INSERT INTO weekly_reports (user_id, week_start, week_end, content, achievements, challenges, next_week_plan) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [user.id, targetWeek.weekStart, targetWeek.weekEnd, content, achievements || null, challenges || null, nextWeekPlan || null]);
+      const result = runQuery(`INSERT INTO weekly_reports (user_id, week_start, week_end, content, achievements, challenges, next_week_plan, overview) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [user.id, targetWeek.weekStart, targetWeek.weekEnd, content, achievements || null, challenges || null, nextWeekPlan || null, overview || null]);
       const newReport = getOne('SELECT * FROM weekly_reports WHERE id = ?', [result.lastInsertRowid]);
       res.status(201).json({ message: 'レポートを作成しました', report: newReport });
     }
@@ -432,5 +433,74 @@ export const getMemberReports = async (req: AuthRequest, res: Response): Promise
   } catch (error) {
     console.error('Get member reports error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
+// Generate overview from detailed report using Claude AI
+export const generateOverview = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { content, achievements, challenges, nextWeekPlan } = req.body;
+
+    if (!content?.trim()) {
+      res.status(400).json({ message: '報告内容を入力してください' });
+      return;
+    }
+
+    // Initialize Anthropic client
+    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+    if (!anthropicApiKey) {
+      res.status(500).json({ message: 'Anthropic API key is not configured' });
+      return;
+    }
+
+    const anthropic = new Anthropic({
+      apiKey: anthropicApiKey,
+    });
+
+    // Build the detailed report content
+    let detailedReport = `今週の報告内容:\n${content}`;
+    if (achievements?.trim()) {
+      detailedReport += `\n\n成果・達成事項:\n${achievements}`;
+    }
+    if (challenges?.trim()) {
+      detailedReport += `\n\n課題・問題点:\n${challenges}`;
+    }
+    if (nextWeekPlan?.trim()) {
+      detailedReport += `\n\n来週の予定:\n${nextWeekPlan}`;
+    }
+
+    // Call Claude API to generate overview
+    const message = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: `以下の詳細な週次報告から、部署の全メンバーが理解できる簡潔なoverviewを作成してください。
+この報告者がどのプロジェクトで何をしているかが一目でわかるように、3-5文程度にまとめてください。
+
+詳細報告:
+${detailedReport}
+
+要件:
+- 簡潔で分かりやすい日本語で記載
+- プロジェクト名や主な業務内容を明記
+- 3-5文程度にまとめる
+- 他のメンバーが読んでも理解できる内容
+- 技術用語は必要最小限に
+
+Overview:`,
+        },
+      ],
+    });
+
+    // Extract the generated overview
+    const overview = message.content[0].type === 'text' ? message.content[0].text : '';
+
+    res.json({ overview });
+  } catch (error: any) {
+    console.error('Generate overview error:', error);
+    const errorMessage = error?.message || 'Overview生成に失敗しました';
+    res.status(500).json({ message: errorMessage });
   }
 };

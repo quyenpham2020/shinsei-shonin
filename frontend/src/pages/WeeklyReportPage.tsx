@@ -61,6 +61,7 @@ const WeeklyReportPage: React.FC = () => {
   const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [generatingOverview, setGeneratingOverview] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPreFilled, setIsPreFilled] = useState(false);
@@ -70,6 +71,7 @@ const WeeklyReportPage: React.FC = () => {
   const [achievements, setAchievements] = useState('');
   const [challenges, setChallenges] = useState('');
   const [nextWeekPlan, setNextWeekPlan] = useState('');
+  const [overview, setOverview] = useState('');
 
   // Comparison data
   const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);
@@ -103,6 +105,7 @@ const WeeklyReportPage: React.FC = () => {
         setAchievements(data.currentWeek.report.achievements || '');
         setChallenges(data.currentWeek.report.challenges || '');
         setNextWeekPlan(data.currentWeek.report.next_week_plan || '');
+        setOverview(data.currentWeek.report.overview || '');
         setIsPreFilled(false);
       }
       // If no current week report but previous week has, pre-fill with previous week data
@@ -111,6 +114,7 @@ const WeeklyReportPage: React.FC = () => {
         setAchievements(data.previousWeek.report.achievements || '');
         setChallenges(data.previousWeek.report.challenges || '');
         setNextWeekPlan(data.previousWeek.report.next_week_plan || '');
+        setOverview(''); // Don't prefill overview from previous week
         setIsPreFilled(true);
       }
     } catch (error) {
@@ -148,6 +152,30 @@ const WeeklyReportPage: React.FC = () => {
     setMemberDetailData(null);
   };
 
+  const handleGenerateOverview = async () => {
+    if (!content.trim()) {
+      setErrorMessage('報告内容を入力してから、Overviewを生成してください');
+      return;
+    }
+
+    setGeneratingOverview(true);
+    try {
+      const data = await weeklyReportService.generateOverview({
+        content,
+        achievements: achievements || undefined,
+        challenges: challenges || undefined,
+        nextWeekPlan: nextWeekPlan || undefined,
+      });
+      setOverview(data.overview);
+      setSuccessMessage('Overviewを生成しました。内容を確認・編集してください。');
+    } catch (error) {
+      console.error('Failed to generate overview:', error);
+      setErrorMessage('Overview生成に失敗しました');
+    } finally {
+      setGeneratingOverview(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) {
@@ -162,6 +190,7 @@ const WeeklyReportPage: React.FC = () => {
         achievements: achievements || undefined,
         challenges: challenges || undefined,
         nextWeekPlan: nextWeekPlan || undefined,
+        overview: overview || undefined,
       });
       setSuccessMessage('週次報告を保存しました');
       setIsPreFilled(false);
@@ -294,6 +323,37 @@ const WeeklyReportPage: React.FC = () => {
               margin="normal"
               placeholder="来週予定している業務を記載してください"
             />
+
+            {/* Overview Section */}
+            <Box sx={{ mt: 3, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Overview（部署共有用の簡潔な報告）
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                上記の詳細報告からAIが自動的に簡潔なoverviewを生成します。生成後に内容を編集できます。
+              </Typography>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleGenerateOverview}
+                disabled={generatingOverview || !content.trim()}
+                startIcon={generatingOverview && <CircularProgress size={20} />}
+                sx={{ mb: 2 }}
+              >
+                {generatingOverview ? 'Overview生成中...' : 'Overviewを生成'}
+              </Button>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                label="Overview"
+                value={overview}
+                onChange={(e) => setOverview(e.target.value)}
+                placeholder="「Overviewを生成」ボタンをクリックするとAIが自動生成します"
+                helperText="生成後に内容を確認・編集してから報告を保存してください"
+              />
+            </Box>
+
             <Box sx={{ mt: 2 }}>
               <Button
                 type="submit"
