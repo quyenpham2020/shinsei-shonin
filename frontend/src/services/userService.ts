@@ -65,6 +65,10 @@ export const userService = {
     await api.delete(`/users/${id}`);
   },
 
+  bulkDelete: async (ids: number[]): Promise<void> => {
+    await api.post('/users/bulk-delete', { ids });
+  },
+
   changePassword: async (id: number, newPassword: string): Promise<void> => {
     await api.put(`/users/${id}/password`, { newPassword });
   },

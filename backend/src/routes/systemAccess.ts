@@ -1,11 +1,14 @@
 import express from 'express';
-import { getAllUsersWithAccess, bulkUpdateAccess } from '../controllers/systemAccessController';
+import { getAllUsersWithAccess, bulkUpdateAccess, getMyAccess } from '../controllers/systemAccessController';
 import { authMiddleware } from '../middlewares/auth';
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(authMiddleware);
+
+// GET /api/system-access/my-access - Get current user's system access
+router.get('/my-access', getMyAccess);
 
 // GET /api/system-access/users - Get all users with their system access
 router.get('/users', getAllUsersWithAccess);

@@ -7,6 +7,7 @@ import {
   updateUser,
   deleteUser,
   changePassword,
+  bulkDeleteUsers,
 } from '../controllers/userController';
 import { authenticateToken, requireRole } from '../middlewares/auth';
 
@@ -19,6 +20,7 @@ router.get('/approvers', getApprovers);
 
 // 以下は管理者のみ
 router.get('/', requireRole('admin'), getUsers);
+router.post('/bulk-delete', requireRole('admin'), bulkDeleteUsers);
 router.get('/:id', requireRole('admin'), getUser);
 router.post('/', requireRole('admin'), createUser);
 router.put('/:id', requireRole('admin'), updateUser);

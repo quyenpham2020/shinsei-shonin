@@ -1,0 +1,80 @@
+[2026-01-04T09:55:21.347Z] 
+================================================================================
+
+[2026-01-04T09:55:21.351Z] TEST MODULE: Weekly-Reports
+[2026-01-04T09:55:21.363Z] Started at: 2026/1/4 18:55:21
+[2026-01-04T09:55:21.363Z] ================================================================================
+
+[2026-01-04T09:55:21.363Z] Starting Weekly Reports Module Tests...
+[2026-01-04T09:55:21.364Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:21.364Z] SETUP: Login as user
+[2026-01-04T09:55:21.364Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:21.472Z] ✅ User logged in: quyet
+[2026-01-04T09:55:21.981Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:21.982Z] TEST 1: Create Weekly Report
+[2026-01-04T09:55:21.982Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:21.982Z] 
+[Step 1] Create new weekly report
+[2026-01-04T09:55:21.983Z] ℹ️  Report data: {
+  "week_start_date": "2025-01-06",
+  "summary": "Test weekly report summary",
+  "accomplishments": "Completed testing framework, Created test scripts",
+  "challenges": "None",
+  "next_week_plan": "Continue with more tests",
+  "additional_notes": "Automated test report"
+}
+[2026-01-04T09:55:21.986Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\weekly-reports\create-weekly-report-1767520521985.json
+[2026-01-04T09:55:21.986Z] ❌ Create weekly report test failed: Assertion failed: Weekly report creation should succeed
+Status: 400
+Response: {"message":"報告内容は必須です"}
+[2026-01-04T09:55:21.986Z] ❌ TEST FAILED: Create Weekly Report
+[2026-01-04T09:55:21.986Z]   Details: {
+  "error": "Assertion failed: Weekly report creation should succeed\nStatus: 400\nResponse: {\"message\":\"報告内容は必須です\"}"
+}
+[2026-01-04T09:55:22.497Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:22.498Z] TEST 2: Get Weekly Reports
+[2026-01-04T09:55:22.499Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:22.500Z] 
+[Step 1] Fetch all weekly reports
+[2026-01-04T09:55:22.507Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\weekly-reports\get-weekly-reports-1767520522505.json
+[2026-01-04T09:55:22.507Z] ❌ Get weekly reports test failed: Assertion failed: Should get weekly reports
+Status: 404
+Response: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /api/weekly-reports</pre>\n</body>\n</html>\n"
+[2026-01-04T09:55:22.507Z] ❌ TEST FAILED: Get Weekly Reports
+[2026-01-04T09:55:22.508Z]   Details: {
+  "error": "Assertion failed: Should get weekly reports\nStatus: 404\nResponse: \"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<head>\\n<meta charset=\\\"utf-8\\\">\\n<title>Error</title>\\n</head>\\n<body>\\n<pre>Cannot GET /api/weekly-reports</pre>\\n</body>\\n</html>\\n\""
+}
+[2026-01-04T09:55:23.008Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:23.009Z] TEST 3: Get Weekly Report Detail
+[2026-01-04T09:55:23.009Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:23.009Z] ⚠️  Skipping: No report ID available
+[2026-01-04T09:55:23.524Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:23.525Z] TEST 4: Update Weekly Report
+[2026-01-04T09:55:23.525Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:23.526Z] ⚠️  Skipping: No report ID available
+[2026-01-04T09:55:24.036Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:24.036Z] TEST 5: Generate AI Overview
+[2026-01-04T09:55:24.037Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:24.037Z] ⚠️  Skipping: No report ID available
+[2026-01-04T09:55:24.553Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:55:24.553Z] TEST 6: Delete Weekly Report
+[2026-01-04T09:55:24.554Z] --------------------------------------------------------------------------------
+[2026-01-04T09:55:24.554Z] ⚠️  Skipping: No report ID available
+[2026-01-04T09:55:24.555Z] 
+================================================================================
+[2026-01-04T09:55:24.555Z] TEST SUMMARY
+[2026-01-04T09:55:24.555Z] ================================================================================
+[2026-01-04T09:55:24.555Z] Total Tests: 2
+[2026-01-04T09:55:24.555Z] Passed: 0
+[2026-01-04T09:55:24.555Z] Failed: 2
+[2026-01-04T09:55:24.555Z] Duration: 3.21s
+[2026-01-04T09:55:24.555Z] Log file: C:\Work\shinsei-shonin\tests\logs\Weekly-Reports-1767520521347.log
+[2026-01-04T09:55:24.556Z] ================================================================================
+

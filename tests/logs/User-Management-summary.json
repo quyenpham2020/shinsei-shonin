@@ -1,0 +1,78 @@
+{
+  "moduleName": "User-Management",
+  "timestamp": "2026-01-04T10:48:07.199Z",
+  "duration": "3.66",
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Get All Users",
+      "passed": true,
+      "details": {
+        "totalUsers": 10,
+        "sampleCount": 5
+      },
+      "timestamp": "2026-01-04T10:48:04.390Z"
+    },
+    {
+      "name": "Create New User",
+      "passed": true,
+      "details": {
+        "userId": 29,
+        "employeeId": "test_1767523684905"
+      },
+      "timestamp": "2026-01-04T10:48:05.033Z"
+    },
+    {
+      "name": "Get User by ID",
+      "passed": true,
+      "details": {
+        "userId": 29,
+        "name": "Test User"
+      },
+      "timestamp": "2026-01-04T10:48:05.562Z"
+    },
+    {
+      "name": "Update User",
+      "passed": true,
+      "details": {
+        "userId": 29,
+        "updates": {
+          "name": "Updated Test User",
+          "department": "g1"
+        }
+      },
+      "timestamp": "2026-01-04T10:48:06.115Z"
+    },
+    {
+      "name": "User Roles & Permissions",
+      "passed": true,
+      "details": {
+        "roles": [
+          "user",
+          "onsite_leader",
+          "admin",
+          "gm",
+          "bod"
+        ],
+        "distribution": {
+          "user": 4,
+          "onsite_leader": 3,
+          "admin": 1,
+          "gm": 2,
+          "bod": 1
+        }
+      },
+      "timestamp": "2026-01-04T10:48:06.643Z"
+    },
+    {
+      "name": "Delete User",
+      "passed": true,
+      "details": {
+        "userId": 29
+      },
+      "timestamp": "2026-01-04T10:48:07.196Z"
+    }
+  ]
+}

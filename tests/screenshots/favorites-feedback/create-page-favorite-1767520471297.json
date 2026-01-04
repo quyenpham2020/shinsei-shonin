@@ -1,0 +1,17 @@
+{
+  "status": 400,
+  "ok": false,
+  "data": {
+    "message": "既にお気に入りに登録されています"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "62",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:54:31 GMT",
+    "etag": "W/\"3e-ymtN/+C5Q/XJKj9Q9PrgWz6uurU\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

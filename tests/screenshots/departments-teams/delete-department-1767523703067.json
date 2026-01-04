@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "message": "部署を削除しました"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "41",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:48:23 GMT",
+    "etag": "W/\"29-zdR3D20OEWOcV1bPeYOpwurKn7g\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

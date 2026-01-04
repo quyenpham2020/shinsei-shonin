@@ -17,7 +17,7 @@ interface Approver {
 }
 
 // 承認者一覧取得
-export const getApprovers = (req: AuthRequest, res: Response): void => {
+export const getApprovers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { department_id, user_id } = req.query;
 
@@ -40,20 +40,23 @@ export const getApprovers = (req: AuthRequest, res: Response): void => {
       WHERE 1=1
     `;
     const params: (string | number)[] = [];
+    let paramIndex = 1;
 
     if (department_id) {
-      sql += ` AND a.department_id = ?`;
+      sql += ` AND a.department_id = $${paramIndex}`;
       params.push(Number(department_id));
+      paramIndex++;
     }
 
     if (user_id) {
-      sql += ` AND a.user_id = ?`;
+      sql += ` AND a.user_id = $${paramIndex}`;
       params.push(Number(user_id));
+      paramIndex++;
     }
 
     sql += ` ORDER BY u.name ASC, d.code ASC`;
 
-    const approvers = getAll<Approver>(sql, params);
+    const approvers = await getAll<Approver>(sql, params);
     res.json(approvers);
   } catch (error) {
     console.error('Get approvers error:', error);
@@ -62,10 +65,10 @@ export const getApprovers = (req: AuthRequest, res: Response): void => {
 };
 
 // 承認者取得（単一）
-export const getApprover = (req: AuthRequest, res: Response): void => {
+export const getApprover = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const approver = getOne<Approver>(`
+    const approver = await getOne<Approver>(`
       SELECT
         a.id,
         a.user_id,
@@ -81,7 +84,7 @@ export const getApprover = (req: AuthRequest, res: Response): void => {
       FROM approvers a
       JOIN users u ON a.user_id = u.id
       JOIN departments d ON a.department_id = d.id
-      WHERE a.id = ?
+      WHERE a.id = $1
     `, [Number(id)]);
 
     if (!approver) {
@@ -97,7 +100,7 @@ export const getApprover = (req: AuthRequest, res: Response): void => {
 };
 
 // 承認者作成（ユーザーと部署の割り当て）
-export const createApprover = (req: AuthRequest, res: Response): void => {
+export const createApprover = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { userId, departmentId, approvalLevel, maxAmount } = req.body;
 
@@ -108,7 +111,7 @@ export const createApprover = (req: AuthRequest, res: Response): void => {
     }
 
     // ユーザーの存在確認
-    const user = getOne<{ id: number; role: string }>(`SELECT id, role FROM users WHERE id = ?`, [userId]);
+    const user = await getOne<{ id: number; role: string }>(`SELECT id, role FROM users WHERE id = $1`, [userId]);
     if (!user) {
       res.status(400).json({ message: '指定されたユーザーが存在しません' });
       return;
@@ -121,26 +124,26 @@ export const createApprover = (req: AuthRequest, res: Response): void => {
     }
 
     // 部署の存在確認
-    const department = getOne<{ id: number }>(`SELECT id FROM departments WHERE id = ?`, [departmentId]);
+    const department = await getOne<{ id: number }>(`SELECT id FROM departments WHERE id = $1`, [departmentId]);
     if (!department) {
       res.status(400).json({ message: '指定された部署が存在しません' });
       return;
     }
 
     // 重複チェック
-    const existing = getOne(`SELECT id FROM approvers WHERE user_id = ? AND department_id = ?`, [userId, departmentId]);
+    const existing = await getOne(`SELECT id FROM approvers WHERE user_id = $1 AND department_id = $2`, [userId, departmentId]);
     if (existing) {
       res.status(400).json({ message: 'この承認者と部署の組み合わせは既に登録されています' });
       return;
     }
 
     // 承認者作成
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO approvers (user_id, department_id, approval_level, max_amount)
-      VALUES (?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4) RETURNING id
     `, [userId, departmentId, approvalLevel || 1, maxAmount || null]);
 
-    const newApprover = getOne<Approver>(`
+    const newApprover = await getOne<Approver>(`
       SELECT
         a.id,
         a.user_id,
@@ -156,8 +159,8 @@ export const createApprover = (req: AuthRequest, res: Response): void => {
       FROM approvers a
       JOIN users u ON a.user_id = u.id
       JOIN departments d ON a.department_id = d.id
-      WHERE a.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE a.id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newApprover);
   } catch (error) {
@@ -167,33 +170,33 @@ export const createApprover = (req: AuthRequest, res: Response): void => {
 };
 
 // 承認者更新
-export const updateApprover = (req: AuthRequest, res: Response): void => {
+export const updateApprover = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { approvalLevel, maxAmount, isActive } = req.body;
 
     // 承認者設定の存在確認
-    const existing = getOne<{ id: number }>(`SELECT id FROM approvers WHERE id = ?`, [Number(id)]);
+    const existing = await getOne<{ id: number }>(`SELECT id FROM approvers WHERE id = $1`, [Number(id)]);
     if (!existing) {
       res.status(404).json({ message: '承認者設定が見つかりません' });
       return;
     }
 
     // 承認者更新
-    runQuery(`
+    await runQuery(`
       UPDATE approvers
-      SET approval_level = COALESCE(?, approval_level),
-          max_amount = ?,
-          is_active = COALESCE(?, is_active)
-      WHERE id = ?
+      SET approval_level = COALESCE($1, approval_level),
+          max_amount = $2,
+          is_active = COALESCE($3, is_active)
+      WHERE id = $4
     `, [
       approvalLevel || null,
       maxAmount !== undefined ? maxAmount : null,
-      isActive !== undefined ? (isActive ? 1 : 0) : null,
+      isActive !== undefined ? (isActive ? true : false) : null,
       Number(id)
     ]);
 
-    const updatedApprover = getOne<Approver>(`
+    const updatedApprover = await getOne<Approver>(`
       SELECT
         a.id,
         a.user_id,
@@ -209,7 +212,7 @@ export const updateApprover = (req: AuthRequest, res: Response): void => {
       FROM approvers a
       JOIN users u ON a.user_id = u.id
       JOIN departments d ON a.department_id = d.id
-      WHERE a.id = ?
+      WHERE a.id = $1
     `, [Number(id)]);
 
     res.json(updatedApprover);
@@ -220,19 +223,19 @@ export const updateApprover = (req: AuthRequest, res: Response): void => {
 };
 
 // 承認者削除
-export const deleteApprover = (req: AuthRequest, res: Response): void => {
+export const deleteApprover = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
     // 承認者設定の存在確認
-    const existing = getOne<{ id: number }>(`SELECT id FROM approvers WHERE id = ?`, [Number(id)]);
+    const existing = await getOne<{ id: number }>(`SELECT id FROM approvers WHERE id = $1`, [Number(id)]);
     if (!existing) {
       res.status(404).json({ message: '承認者設定が見つかりません' });
       return;
     }
 
     // 承認者削除
-    runQuery(`DELETE FROM approvers WHERE id = ?`, [Number(id)]);
+    await runQuery(`DELETE FROM approvers WHERE id = $1`, [Number(id)]);
 
     res.json({ message: '承認者設定を削除しました' });
   } catch (error) {
@@ -242,9 +245,9 @@ export const deleteApprover = (req: AuthRequest, res: Response): void => {
 };
 
 // 承認可能ユーザー一覧取得（承認者/管理者ロールのユーザー）
-export const getApproverCandidates = (req: AuthRequest, res: Response): void => {
+export const getApproverCandidates = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const candidates = getAll<{
+    const candidates = await getAll<{
       id: number;
       employee_id: string;
       name: string;
@@ -265,7 +268,7 @@ export const getApproverCandidates = (req: AuthRequest, res: Response): void => 
 };
 
 // ユーザーの担当部署一覧取得
-export const getApproverDepartments = (req: AuthRequest, res: Response): void => {
+export const getApproverDepartments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
 
@@ -274,7 +277,7 @@ export const getApproverDepartments = (req: AuthRequest, res: Response): void =>
       return;
     }
 
-    const departments = getAll<{
+    const departments = await getAll<{
       department_id: number;
       department_name: string;
       department_code: string;
@@ -289,7 +292,7 @@ export const getApproverDepartments = (req: AuthRequest, res: Response): void =>
         a.max_amount
       FROM approvers a
       JOIN departments d ON a.department_id = d.id
-      WHERE a.user_id = ? AND a.is_active = 1
+      WHERE a.user_id = $1 AND a.is_active = true
       ORDER BY d.code ASC
     `, [userId]);
 

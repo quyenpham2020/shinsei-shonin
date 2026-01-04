@@ -1,0 +1,98 @@
+[2026-01-04T09:54:11.218Z] 
+================================================================================
+
+[2026-01-04T09:54:11.222Z] TEST MODULE: Application-Management
+[2026-01-04T09:54:11.234Z] Started at: 2026/1/4 18:54:11
+[2026-01-04T09:54:11.235Z] ================================================================================
+
+[2026-01-04T09:54:11.235Z] Starting Application Management Module Tests...
+[2026-01-04T09:54:11.235Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:11.236Z] SETUP: Login users
+[2026-01-04T09:54:11.236Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:11.237Z] 
+[Step 1] Login as regular user
+[2026-01-04T09:54:11.367Z] ✅ User logged in: quyet
+[2026-01-04T09:54:11.367Z] 
+[Step 2] Login as admin (approver)
+[2026-01-04T09:54:11.432Z] ✅ Approver logged in: admin
+[2026-01-04T09:54:11.937Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:11.938Z] TEST 1: Get Application Types
+[2026-01-04T09:54:11.939Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:11.939Z] 
+[Step 1] Fetch available application types
+[2026-01-04T09:54:11.942Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\application-management\get-application-types-1767520451942.json
+[2026-01-04T09:54:11.943Z] ✅ Found 2 application types
+[2026-01-04T09:54:11.943Z] ℹ️  Available types:
+[2026-01-04T09:54:11.943Z]   - 1: Updated Test Application
+[2026-01-04T09:54:11.943Z]   - 3: travel
+[2026-01-04T09:54:11.943Z] ✅ TEST PASSED: Get Application Types
+[2026-01-04T09:54:11.943Z]   Details: {
+  "totalTypes": 2
+}
+[2026-01-04T09:54:12.445Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:12.446Z] TEST 2: Create New Application
+[2026-01-04T09:54:12.447Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:12.447Z] 
+[Step 1] Create new application
+[2026-01-04T09:54:12.447Z] ℹ️  Application data: {
+  "type_id": 1,
+  "title": "Test Application 1767520452447",
+  "content": "This is a test application for automated testing",
+  "priority": "normal"
+}
+[2026-01-04T09:54:12.450Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\application-management\create-application-1767520452450.json
+[2026-01-04T09:54:12.450Z] ❌ Create application test failed: Assertion failed: Application creation should succeed
+Status: 400
+Response: {"message":"タイトルと申請種別は必須です"}
+[2026-01-04T09:54:12.450Z] ❌ TEST FAILED: Create New Application
+[2026-01-04T09:54:12.451Z]   Details: {
+  "error": "Assertion failed: Application creation should succeed\nStatus: 400\nResponse: {\"message\":\"タイトルと申請種別は必須です\"}"
+}
+[2026-01-04T09:54:12.965Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:12.966Z] TEST 3: Get Applications List
+[2026-01-04T09:54:12.967Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:12.967Z] 
+[Step 1] Fetch all applications
+[2026-01-04T09:54:12.974Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\application-management\get-applications-1767520452973.json
+[2026-01-04T09:54:12.974Z] ✅ Found 0 applications
+[2026-01-04T09:54:12.974Z] ✅ TEST PASSED: Get Applications List
+[2026-01-04T09:54:12.974Z]   Details: {
+  "totalApplications": 0
+}
+[2026-01-04T09:54:13.484Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:13.485Z] TEST 4: Get Application Detail
+[2026-01-04T09:54:13.485Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:13.485Z] ⚠️  Skipping: No application ID available
+[2026-01-04T09:54:14.000Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:14.001Z] TEST 5: Approve Application
+[2026-01-04T09:54:14.001Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:14.001Z] ⚠️  Skipping: No application ID available
+[2026-01-04T09:54:14.514Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:14.514Z] TEST 6: Filter Applications
+[2026-01-04T09:54:14.514Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:14.515Z] 
+[Step 1] Filter applications by status
+[2026-01-04T09:54:14.519Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\application-management\filter-applications-1767520454519.json
+[2026-01-04T09:54:14.519Z] ✅ Found 0 approved applications
+[2026-01-04T09:54:14.519Z] ✅ TEST PASSED: Filter Applications
+[2026-01-04T09:54:14.519Z]   Details: {
+  "approvedCount": 0
+}
+[2026-01-04T09:54:14.520Z] 
+================================================================================
+[2026-01-04T09:54:14.520Z] TEST SUMMARY
+[2026-01-04T09:54:14.520Z] ================================================================================
+[2026-01-04T09:54:14.520Z] Total Tests: 4
+[2026-01-04T09:54:14.520Z] Passed: 3
+[2026-01-04T09:54:14.520Z] Failed: 1
+[2026-01-04T09:54:14.520Z] Duration: 3.30s
+[2026-01-04T09:54:14.520Z] Log file: C:\Work\shinsei-shonin\tests\logs\Application-Management-1767520451217.log
+[2026-01-04T09:54:14.521Z] ================================================================================
+

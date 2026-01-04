@@ -5,27 +5,26 @@ import { AuthRequest } from '../middlewares/auth';
 interface PageFavorite {
   id: number;
   user_id: number;
-  url: string;
-  title: string;
-  icon: string | null;
+  page_path: string;
+  page_name: string;
   created_at: string;
 }
 
 // ページお気に入り追加
-export const addPageFavorite = (req: AuthRequest, res: Response): void => {
+export const addPageFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { url, title, icon } = req.body;
+    const { page_path, page_name } = req.body;
     const user = req.user!;
 
-    if (!url || !title) {
-      res.status(400).json({ message: 'URLとタイトルは必須です' });
+    if (!page_path || !page_name) {
+      res.status(400).json({ message: 'ページパスとページ名は必須です' });
       return;
     }
 
     // 既に登録済みかチェック
-    const existing = getOne<PageFavorite>(
-      'SELECT * FROM page_favorites WHERE user_id = ? AND url = ?',
-      [user.id, url]
+    const existing = await getOne<PageFavorite>(
+      'SELECT * FROM page_favorites WHERE user_id = $1 AND page_path = $2',
+      [user.id, page_path]
     );
 
     if (existing) {
@@ -33,14 +32,14 @@ export const addPageFavorite = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    const result = runQuery(
-      'INSERT INTO page_favorites (user_id, url, title, icon) VALUES (?, ?, ?, ?)',
-      [user.id, url, title, icon || null]
+    const result = await runQuery(
+      'INSERT INTO page_favorites (user_id, page_path, page_name) VALUES ($1, $2, $3) RETURNING id',
+      [user.id, page_path, page_name]
     );
 
-    const newFavorite = getOne<PageFavorite>(
-      'SELECT * FROM page_favorites WHERE id = ?',
-      [result.lastInsertRowid]
+    const newFavorite = await getOne<PageFavorite>(
+      'SELECT * FROM page_favorites WHERE id = $1',
+      [result.rows[0].id]
     );
 
     res.status(201).json(newFavorite);
@@ -51,19 +50,19 @@ export const addPageFavorite = (req: AuthRequest, res: Response): void => {
 };
 
 // ページお気に入り削除
-export const removePageFavorite = (req: AuthRequest, res: Response): void => {
+export const removePageFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { url } = req.body;
+    const { page_path } = req.body;
     const user = req.user!;
 
-    if (!url) {
-      res.status(400).json({ message: 'URLは必須です' });
+    if (!page_path) {
+      res.status(400).json({ message: 'ページパスは必須です' });
       return;
     }
 
-    const existing = getOne<PageFavorite>(
-      'SELECT * FROM page_favorites WHERE user_id = ? AND url = ?',
-      [user.id, url]
+    const existing = await getOne<PageFavorite>(
+      'SELECT * FROM page_favorites WHERE user_id = $1 AND page_path = $2',
+      [user.id, page_path]
     );
 
     if (!existing) {
@@ -71,9 +70,9 @@ export const removePageFavorite = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    runQuery(
-      'DELETE FROM page_favorites WHERE user_id = ? AND url = ?',
-      [user.id, url]
+    await runQuery(
+      'DELETE FROM page_favorites WHERE user_id = $1 AND page_path = $2',
+      [user.id, page_path]
     );
 
     res.json({ message: 'お気に入りから削除しました' });
@@ -84,33 +83,33 @@ export const removePageFavorite = (req: AuthRequest, res: Response): void => {
 };
 
 // ページお気に入り切り替え
-export const togglePageFavorite = (req: AuthRequest, res: Response): void => {
+export const togglePageFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { url, title, icon } = req.body;
+    const { page_path, page_name } = req.body;
     const user = req.user!;
 
-    if (!url || !title) {
-      res.status(400).json({ message: 'URLとタイトルは必須です' });
+    if (!page_path || !page_name) {
+      res.status(400).json({ message: 'ページパスとページ名は必須です' });
       return;
     }
 
-    const existing = getOne<PageFavorite>(
-      'SELECT * FROM page_favorites WHERE user_id = ? AND url = ?',
-      [user.id, url]
+    const existing = await getOne<PageFavorite>(
+      'SELECT * FROM page_favorites WHERE user_id = $1 AND page_path = $2',
+      [user.id, page_path]
     );
 
     if (existing) {
       // 削除
-      runQuery(
-        'DELETE FROM page_favorites WHERE user_id = ? AND url = ?',
-        [user.id, url]
+      await runQuery(
+        'DELETE FROM page_favorites WHERE user_id = $1 AND page_path = $2',
+        [user.id, page_path]
       );
       res.json({ is_favorite: false, message: 'お気に入りから削除しました' });
     } else {
       // 追加
-      runQuery(
-        'INSERT INTO page_favorites (user_id, url, title, icon) VALUES (?, ?, ?, ?)',
-        [user.id, url, title, icon || null]
+      await runQuery(
+        'INSERT INTO page_favorites (user_id, page_path, page_name) VALUES ($1, $2, $3)',
+        [user.id, page_path, page_name]
       );
       res.json({ is_favorite: true, message: 'お気に入りに追加しました' });
     }
@@ -121,12 +120,12 @@ export const togglePageFavorite = (req: AuthRequest, res: Response): void => {
 };
 
 // ユーザーのページお気に入り一覧取得
-export const getPageFavorites = (req: AuthRequest, res: Response): void => {
+export const getPageFavorites = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
 
-    const favorites = getAll<PageFavorite>(
-      'SELECT * FROM page_favorites WHERE user_id = ? ORDER BY created_at DESC',
+    const favorites = await getAll<PageFavorite>(
+      'SELECT * FROM page_favorites WHERE user_id = $1 ORDER BY created_at DESC',
       [user.id]
     );
 
@@ -138,19 +137,19 @@ export const getPageFavorites = (req: AuthRequest, res: Response): void => {
 };
 
 // ページお気に入り状態チェック
-export const checkPageFavorite = (req: AuthRequest, res: Response): void => {
+export const checkPageFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { url } = req.query;
+    const { page_path } = req.query;
     const user = req.user!;
 
-    if (!url) {
-      res.status(400).json({ message: 'URLは必須です' });
+    if (!page_path) {
+      res.status(400).json({ message: 'ページパスは必須です' });
       return;
     }
 
-    const existing = getOne<PageFavorite>(
-      'SELECT * FROM page_favorites WHERE user_id = ? AND url = ?',
-      [user.id, url as string]
+    const existing = await getOne<PageFavorite>(
+      'SELECT * FROM page_favorites WHERE user_id = $1 AND page_path = $2',
+      [user.id, page_path as string]
     );
 
     res.json({ is_favorite: !!existing });

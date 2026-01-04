@@ -1,0 +1,45 @@
+{
+  "moduleName": "System-Access",
+  "timestamp": "2026-01-04T10:48:26.889Z",
+  "duration": "2.39",
+  "total": 4,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Get My System Access",
+      "passed": true,
+      "details": {
+        "adminSystems": [],
+        "userSystems": []
+      },
+      "timestamp": "2026-01-04T10:48:25.296Z"
+    },
+    {
+      "name": "Get All Users With Access",
+      "passed": true,
+      "details": {
+        "totalUsers": 10
+      },
+      "timestamp": "2026-01-04T10:48:25.815Z"
+    },
+    {
+      "name": "Bulk Update System Access",
+      "passed": true,
+      "details": {
+        "userId": 18,
+        "updatedSystems": [
+          "shinsei-shonin",
+          "weekly-report"
+        ]
+      },
+      "timestamp": "2026-01-04T10:48:26.357Z"
+    },
+    {
+      "name": "Access Restriction Verification",
+      "passed": true,
+      "details": null,
+      "timestamp": "2026-01-04T10:48:26.880Z"
+    }
+  ]
+}

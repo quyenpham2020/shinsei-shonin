@@ -1,17 +1,13 @@
 import { Request, Response } from 'express';
-import { getAll, getOne, runQuery, saveDatabase } from '../config/database';
+import { getAll, getOne, runQuery } from '../config/database';
 import { canManageTeams, getManageableTeams, canAssignOnsiteLeader, UserPermissionInfo } from '../services/permissionService';
 
 interface TeamWithDetails {
   id: number;
   name: string;
-  department_id: number;
-  department_name: string;
   leader_id: number | null;
   leader_name: string | null;
   description: string | null;
-  webhook_url: string | null;
-  is_active: number;
   member_count: number;
   created_at: string;
 }
@@ -31,9 +27,9 @@ export const getAllTeams = async (req: Request, res: Response) => {
     const user = (req as any).user;
 
     // Get actor's permission info
-    const actor = getOne<UserPermissionInfo>(`
+    const actor = await getOne<UserPermissionInfo>(`
       SELECT id, role, department, department_id, team_id
-      FROM users WHERE id = ?
+      FROM users WHERE id = $1
     `, [user.id]);
 
     if (!actor) {
@@ -44,46 +40,30 @@ export const getAllTeams = async (req: Request, res: Response) => {
 
     // Admin and BOD see all teams
     if (actor.role === 'admin' || actor.role === 'bod') {
-      teams = getAll<TeamWithDetails>(`
-        SELECT t.*, d.name as department_name, u.name as leader_name,
+      teams = await getAll<TeamWithDetails>(`
+        SELECT t.*, u.name as leader_name,
                (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
         FROM teams t
-        LEFT JOIN departments d ON t.department_id = d.id
         LEFT JOIN users u ON t.leader_id = u.id
-        ORDER BY d.name, t.name
+        ORDER BY t.name
       `);
     } else if (actor.role === 'gm') {
-      // GM sees teams in their department
-      if (actor.department_id) {
-        teams = getAll<TeamWithDetails>(`
-          SELECT t.*, d.name as department_name, u.name as leader_name,
-                 (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
-          FROM teams t
-          LEFT JOIN departments d ON t.department_id = d.id
-          LEFT JOIN users u ON t.leader_id = u.id
-          WHERE t.department_id = ?
-          ORDER BY t.name
-        `, [actor.department_id]);
-      } else {
-        teams = getAll<TeamWithDetails>(`
-          SELECT t.*, d.name as department_name, u.name as leader_name,
-                 (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
-          FROM teams t
-          LEFT JOIN departments d ON t.department_id = d.id
-          LEFT JOIN users u ON t.leader_id = u.id
-          WHERE d.name = ?
-          ORDER BY t.name
-        `, [actor.department]);
-      }
-    } else if (actor.role === 'onsite_leader' && actor.team_id) {
-      // Onsite leader sees only their team
-      teams = getAll<TeamWithDetails>(`
-        SELECT t.*, d.name as department_name, u.name as leader_name,
+      // GM sees all teams (teams are not department-specific)
+      teams = await getAll<TeamWithDetails>(`
+        SELECT t.*, u.name as leader_name,
                (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
         FROM teams t
-        LEFT JOIN departments d ON t.department_id = d.id
         LEFT JOIN users u ON t.leader_id = u.id
-        WHERE t.id = ?
+        ORDER BY t.name
+      `);
+    } else if (actor.role === 'onsite_leader' && actor.team_id) {
+      // Onsite leader sees only their team
+      teams = await getAll<TeamWithDetails>(`
+        SELECT t.*, u.name as leader_name,
+               (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
+        FROM teams t
+        LEFT JOIN users u ON t.leader_id = u.id
+        WHERE t.id = $1
       `, [actor.team_id]);
     } else {
       // Regular users don't see teams management
@@ -102,13 +82,12 @@ export const getTeamById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const team = getOne<TeamWithDetails>(`
-      SELECT t.*, d.name as department_name, u.name as leader_name,
+    const team = await getOne<TeamWithDetails>(`
+      SELECT t.*, u.name as leader_name,
              (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
       FROM teams t
-      LEFT JOIN departments d ON t.department_id = d.id
       LEFT JOIN users u ON t.leader_id = u.id
-      WHERE t.id = ?
+      WHERE t.id = $1
     `, [parseInt(id)]);
 
     if (!team) {
@@ -127,10 +106,10 @@ export const getTeamMembers = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const members = getAll<TeamMember>(`
+    const members = await getAll<TeamMember>(`
       SELECT id, employee_id, name, email, role, department
       FROM users
-      WHERE team_id = ?
+      WHERE team_id = $1
       ORDER BY role, name
     `, [parseInt(id)]);
 
@@ -145,52 +124,38 @@ export const getTeamMembers = async (req: Request, res: Response) => {
 export const createTeam = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { name, department_id, description, leader_id, webhook_url } = req.body;
+    const { name, description, leader_id } = req.body;
 
     // Get actor's permission info
-    const actor = getOne<UserPermissionInfo>(`
+    const actor = await getOne<UserPermissionInfo>(`
       SELECT id, role, department, department_id, team_id
-      FROM users WHERE id = ?
+      FROM users WHERE id = $1
     `, [user.id]);
 
     if (!actor || !canManageTeams(actor)) {
       return res.status(403).json({ error: 'Insufficient permissions to create teams' });
     }
 
-    // Verify department exists
-    const dept = getOne<{ id: number }>(`SELECT id FROM departments WHERE id = ?`, [department_id]);
-    if (!dept) {
-      return res.status(400).json({ error: 'Department not found' });
-    }
-
-    // GM can only create teams in their own department
-    if (actor.role === 'gm' && actor.department_id !== department_id) {
-      return res.status(403).json({ error: 'Cannot create teams in other departments' });
-    }
-
-    const result = runQuery(`
-      INSERT INTO teams (name, department_id, description, leader_id, webhook_url)
-      VALUES (?, ?, ?, ?, ?)
-    `, [name, department_id, description || null, leader_id || null, webhook_url || null]);
+    const result = await runQuery(`
+      INSERT INTO teams (name, description, leader_id)
+      VALUES ($1, $2, $3) RETURNING id
+    `, [name, description || null, leader_id || null]);
 
     // If leader is specified, update their role to onsite_leader and assign to team
     if (leader_id) {
-      runQuery(`
-        UPDATE users SET role = 'onsite_leader', team_id = ?
-        WHERE id = ?
-      `, [result.lastInsertRowid, leader_id]);
+      await runQuery(`
+        UPDATE users SET role = 'onsite_leader', team_id = $1
+        WHERE id = $2
+      `, [result.rows[0].id, leader_id]);
     }
 
-    saveDatabase();
-
-    const newTeam = getOne<TeamWithDetails>(`
-      SELECT t.*, d.name as department_name, u.name as leader_name,
+    const newTeam = await getOne<TeamWithDetails>(`
+      SELECT t.*, u.name as leader_name,
              0 as member_count
       FROM teams t
-      LEFT JOIN departments d ON t.department_id = d.id
       LEFT JOIN users u ON t.leader_id = u.id
-      WHERE t.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE t.id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newTeam);
   } catch (error) {
@@ -204,12 +169,12 @@ export const updateTeam = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    const { name, description, leader_id, webhook_url, is_active } = req.body;
+    const { name, description, leader_id } = req.body;
 
     // Get actor's permission info
-    const actor = getOne<UserPermissionInfo>(`
+    const actor = await getOne<UserPermissionInfo>(`
       SELECT id, role, department, department_id, team_id
-      FROM users WHERE id = ?
+      FROM users WHERE id = $1
     `, [user.id]);
 
     if (!actor || !canManageTeams(actor)) {
@@ -217,50 +182,40 @@ export const updateTeam = async (req: Request, res: Response) => {
     }
 
     // Get current team
-    const team = getOne<{ id: number; department_id: number; leader_id: number | null }>(`
-      SELECT id, department_id, leader_id FROM teams WHERE id = ?
+    const team = await getOne<{ id: number; leader_id: number | null }>(`
+      SELECT id, leader_id FROM teams WHERE id = $1
     `, [parseInt(id)]);
 
     if (!team) {
       return res.status(404).json({ error: 'Team not found' });
     }
 
-    // GM can only update teams in their own department
-    if (actor.role === 'gm' && actor.department_id !== team.department_id) {
-      return res.status(403).json({ error: 'Cannot update teams in other departments' });
-    }
-
     // Handle leader change
     if (leader_id !== undefined && leader_id !== team.leader_id) {
       // Remove old leader's onsite_leader role
       if (team.leader_id) {
-        runQuery(`UPDATE users SET role = 'user' WHERE id = ? AND role = 'onsite_leader'`, [team.leader_id]);
+        await runQuery(`UPDATE users SET role = 'user' WHERE id = $1 AND role = 'onsite_leader'`, [team.leader_id]);
       }
       // Set new leader
       if (leader_id) {
-        runQuery(`UPDATE users SET role = 'onsite_leader', team_id = ? WHERE id = ?`, [parseInt(id), leader_id]);
+        await runQuery(`UPDATE users SET role = 'onsite_leader', team_id = $1 WHERE id = $2`, [parseInt(id), leader_id]);
       }
     }
 
-    runQuery(`
+    await runQuery(`
       UPDATE teams SET
-        name = COALESCE(?, name),
-        description = COALESCE(?, description),
-        leader_id = ?,
-        webhook_url = COALESCE(?, webhook_url),
-        is_active = COALESCE(?, is_active)
-      WHERE id = ?
-    `, [name, description, leader_id || null, webhook_url, is_active, parseInt(id)]);
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        leader_id = COALESCE($3, leader_id)
+      WHERE id = $4
+    `, [name || null, description || null, leader_id !== undefined ? leader_id : null, parseInt(id)]);
 
-    saveDatabase();
-
-    const updatedTeam = getOne<TeamWithDetails>(`
-      SELECT t.*, d.name as department_name, u.name as leader_name,
+    const updatedTeam = await getOne<TeamWithDetails>(`
+      SELECT t.*, u.name as leader_name,
              (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
       FROM teams t
-      LEFT JOIN departments d ON t.department_id = d.id
       LEFT JOIN users u ON t.leader_id = u.id
-      WHERE t.id = ?
+      WHERE t.id = $1
     `, [parseInt(id)]);
 
     res.json(updatedTeam);
@@ -277,9 +232,9 @@ export const deleteTeam = async (req: Request, res: Response) => {
     const user = (req as any).user;
 
     // Get actor's permission info
-    const actor = getOne<UserPermissionInfo>(`
+    const actor = await getOne<UserPermissionInfo>(`
       SELECT id, role, department, department_id, team_id
-      FROM users WHERE id = ?
+      FROM users WHERE id = $1
     `, [user.id]);
 
     if (!actor || !canManageTeams(actor)) {
@@ -287,31 +242,24 @@ export const deleteTeam = async (req: Request, res: Response) => {
     }
 
     // Get team
-    const team = getOne<{ id: number; department_id: number; leader_id: number | null }>(`
-      SELECT id, department_id, leader_id FROM teams WHERE id = ?
+    const team = await getOne<{ id: number; leader_id: number | null }>(`
+      SELECT id, leader_id FROM teams WHERE id = $1
     `, [parseInt(id)]);
 
     if (!team) {
       return res.status(404).json({ error: 'Team not found' });
     }
 
-    // GM can only delete teams in their own department
-    if (actor.role === 'gm' && actor.department_id !== team.department_id) {
-      return res.status(403).json({ error: 'Cannot delete teams in other departments' });
-    }
-
     // Remove team_id from all members
-    runQuery(`UPDATE users SET team_id = NULL WHERE team_id = ?`, [parseInt(id)]);
+    await runQuery(`UPDATE users SET team_id = NULL WHERE team_id = $1`, [parseInt(id)]);
 
     // Remove onsite_leader role from the leader
     if (team.leader_id) {
-      runQuery(`UPDATE users SET role = 'user' WHERE id = ? AND role = 'onsite_leader'`, [team.leader_id]);
+      await runQuery(`UPDATE users SET role = 'user' WHERE id = $1 AND role = 'onsite_leader'`, [team.leader_id]);
     }
 
-    // Soft delete (mark as inactive) instead of hard delete
-    runQuery(`UPDATE teams SET is_active = 0 WHERE id = ?`, [parseInt(id)]);
-
-    saveDatabase();
+    // Delete the team
+    await runQuery(`DELETE FROM teams WHERE id = $1`, [parseInt(id)]);
 
     res.json({ message: 'Team deleted successfully' });
   } catch (error) {
@@ -328,14 +276,14 @@ export const addTeamMember = async (req: Request, res: Response) => {
     const user = (req as any).user;
 
     // Get actor's permission info
-    const actor = getOne<UserPermissionInfo>(`
+    const actor = await getOne<UserPermissionInfo>(`
       SELECT id, role, department, department_id, team_id
-      FROM users WHERE id = ?
+      FROM users WHERE id = $1
     `, [user.id]);
 
     // Get team
-    const team = getOne<{ id: number; department_id: number; leader_id: number | null }>(`
-      SELECT id, department_id, leader_id FROM teams WHERE id = ?
+    const team = await getOne<{ id: number; leader_id: number | null }>(`
+      SELECT id, leader_id FROM teams WHERE id = $1
     `, [parseInt(id)]);
 
     if (!team) {
@@ -345,15 +293,14 @@ export const addTeamMember = async (req: Request, res: Response) => {
     // Check permissions
     const canModify = actor?.role === 'admin' ||
       actor?.role === 'bod' ||
-      (actor?.role === 'gm' && actor.department_id === team.department_id) ||
+      actor?.role === 'gm' ||
       (actor?.role === 'onsite_leader' && actor.team_id === parseInt(id));
 
     if (!canModify) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    runQuery(`UPDATE users SET team_id = ? WHERE id = ?`, [parseInt(id), user_id]);
-    saveDatabase();
+    await runQuery(`UPDATE users SET team_id = $1 WHERE id = $2`, [parseInt(id), user_id]);
 
     res.json({ message: 'Member added to team successfully' });
   } catch (error) {
@@ -369,14 +316,14 @@ export const removeTeamMember = async (req: Request, res: Response) => {
     const user = (req as any).user;
 
     // Get actor's permission info
-    const actor = getOne<UserPermissionInfo>(`
+    const actor = await getOne<UserPermissionInfo>(`
       SELECT id, role, department, department_id, team_id
-      FROM users WHERE id = ?
+      FROM users WHERE id = $1
     `, [user.id]);
 
     // Get team
-    const team = getOne<{ id: number; department_id: number; leader_id: number | null }>(`
-      SELECT id, department_id, leader_id FROM teams WHERE id = ?
+    const team = await getOne<{ id: number; leader_id: number | null }>(`
+      SELECT id, leader_id FROM teams WHERE id = $1
     `, [parseInt(id)]);
 
     if (!team) {
@@ -386,7 +333,7 @@ export const removeTeamMember = async (req: Request, res: Response) => {
     // Check permissions
     const canModify = actor?.role === 'admin' ||
       actor?.role === 'bod' ||
-      (actor?.role === 'gm' && actor.department_id === team.department_id) ||
+      actor?.role === 'gm' ||
       (actor?.role === 'onsite_leader' && actor.team_id === parseInt(id));
 
     if (!canModify) {
@@ -398,8 +345,7 @@ export const removeTeamMember = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Cannot remove team leader. Change leader first.' });
     }
 
-    runQuery(`UPDATE users SET team_id = NULL WHERE id = ? AND team_id = ?`, [parseInt(userId), parseInt(id)]);
-    saveDatabase();
+    await runQuery(`UPDATE users SET team_id = NULL WHERE id = $1 AND team_id = $2`, [parseInt(userId), parseInt(id)]);
 
     res.json({ message: 'Member removed from team successfully' });
   } catch (error) {
@@ -413,23 +359,21 @@ export const getAvailableMembers = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const team = getOne<{ department_id: number }>(`
-      SELECT department_id FROM teams WHERE id = ?
+    const team = await getOne<{ id: number }>(`
+      SELECT id FROM teams WHERE id = $1
     `, [parseInt(id)]);
 
     if (!team) {
       return res.status(404).json({ error: 'Team not found' });
     }
 
-    const availableUsers = getAll<TeamMember>(`
+    const availableUsers = await getAll<TeamMember>(`
       SELECT u.id, u.employee_id, u.name, u.email, u.role, u.department
       FROM users u
-      LEFT JOIN departments d ON u.department = d.name
-      WHERE (d.id = ? OR u.department_id = ?)
-      AND (u.team_id IS NULL OR u.team_id != ?)
+      WHERE (u.team_id IS NULL OR u.team_id != $1)
       AND u.role NOT IN ('admin', 'bod', 'gm')
       ORDER BY u.name
-    `, [team.department_id, team.department_id, parseInt(id)]);
+    `, [parseInt(id)]);
 
     res.json(availableUsers);
   } catch (error) {

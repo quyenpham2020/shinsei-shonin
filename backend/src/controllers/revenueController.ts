@@ -21,15 +21,15 @@ interface RevenueRecord {
 }
 
 // Helper function to check if user can access customer data
-const canAccessCustomer = (user: any, customerId: number): boolean => {
+const canAccessCustomer = async (user: any, customerId: number): Promise<boolean> => {
   if (user.role === 'admin' || user.role === 'bod' || user.role === 'gm') {
     return true;
   }
 
   if (user.role === 'onsite_leader' && user.teamId) {
     // Check if user's team is assigned to this customer
-    const assignment = getOne<{ customer_id: number }>(
-      'SELECT customer_id FROM customer_teams WHERE customer_id = ? AND team_id = ?',
+    const assignment = await getOne<{ customer_id: number }>(
+      'SELECT customer_id FROM customer_teams WHERE customer_id = $1 AND team_id = $2',
       [customerId, user.teamId]
     );
     return !!assignment;
@@ -51,7 +51,7 @@ export const getRevenueRecords = async (req: AuthRequest, res: Response): Promis
   try {
     let query = `
       SELECT rr.*, c.name as customer_name
-      FROM revenue_records rr
+      FROM revenue rr
       INNER JOIN customers c ON rr.customer_id = c.id
     `;
     const params: any[] = [];
@@ -60,14 +60,14 @@ export const getRevenueRecords = async (req: AuthRequest, res: Response): Promis
     if (user.role === 'onsite_leader' && user.teamId) {
       query += `
         INNER JOIN customer_teams ct ON c.id = ct.customer_id
-        WHERE ct.team_id = ?
+        WHERE ct.team_id = $1
       `;
       params.push(user.teamId);
     }
 
     query += ' ORDER BY rr.year DESC, rr.month DESC, c.name';
 
-    const records = getAll<RevenueRecord>(query, params);
+    const records = await getAll<RevenueRecord>(query, params);
     res.json(records);
   } catch (error) {
     console.error('Get revenue records error:', error);
@@ -87,17 +87,17 @@ export const getCustomerRevenue = async (req: AuthRequest, res: Response): Promi
   }
 
   // Check access rights
-  if (!canAccessCustomer(user, customerId)) {
+  if (!(await canAccessCustomer(user, customerId))) {
     res.status(403).json({ message: req.__('errors.forbidden') });
     return;
   }
 
   try {
-    const records = getAll<RevenueRecord>(
+    const records = await getAll<RevenueRecord>(
       `SELECT rr.*, c.name as customer_name
-       FROM revenue_records rr
+       FROM revenue rr
        INNER JOIN customers c ON rr.customer_id = c.id
-       WHERE rr.customer_id = ?
+       WHERE rr.customer_id = $1
        ORDER BY rr.year DESC, rr.month DESC`,
       [customerId]
     );
@@ -121,11 +121,11 @@ export const getRevenueRecord = async (req: AuthRequest, res: Response): Promise
   }
 
   try {
-    const record = getOne<RevenueRecord>(
+    const record = await getOne<RevenueRecord>(
       `SELECT rr.*, c.name as customer_name
-       FROM revenue_records rr
+       FROM revenue rr
        INNER JOIN customers c ON rr.customer_id = c.id
-       WHERE rr.id = ?`,
+       WHERE rr.id = $1`,
       [recordId]
     );
 
@@ -135,7 +135,7 @@ export const getRevenueRecord = async (req: AuthRequest, res: Response): Promise
     }
 
     // Check access rights
-    if (!canAccessCustomer(user, record.customer_id)) {
+    if (!(await canAccessCustomer(user, record.customer_id))) {
       res.status(403).json({ message: req.__('errors.forbidden') });
       return;
     }
@@ -159,7 +159,7 @@ export const createRevenueRecord = async (req: AuthRequest, res: Response): Prom
   }
 
   // Check access rights
-  if (!canAccessCustomer(user, customer_id)) {
+  if (!(await canAccessCustomer(user, customer_id))) {
     res.status(403).json({ message: req.__('errors.forbidden') });
     return;
   }
@@ -172,15 +172,15 @@ export const createRevenueRecord = async (req: AuthRequest, res: Response): Prom
     // Calculate total amount
     const total_amount = ((mm_onsite || 0) * onsitePrice) + ((mm_offshore || 0) * offshorePrice);
 
-    const result = runQuery(
-      `INSERT INTO revenue_records
+    const result = await runQuery(
+      `INSERT INTO revenue
        (customer_id, year, month, mm_onsite, mm_offshore, unit_price, unit_price_onsite, unit_price_offshore, total_amount, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
       [customer_id, year, month, mm_onsite || 0, mm_offshore || 0, unit_price || 0, onsitePrice, offshorePrice, total_amount, notes || null, user.id]
     );
 
     res.status(201).json({
-      id: result.lastInsertRowid,
+      id: result.rows[0].id,
       message: req.__('success.created', { resource: req.__('resources.revenue') || 'Revenue record' })
     });
   } catch (error: any) {
@@ -207,8 +207,8 @@ export const updateRevenueRecord = async (req: AuthRequest, res: Response): Prom
 
   try {
     // Get existing record to check access
-    const existing = getOne<RevenueRecord>(
-      'SELECT * FROM revenue_records WHERE id = ?',
+    const existing = await getOne<RevenueRecord>(
+      'SELECT * FROM revenue WHERE id = $1',
       [recordId]
     );
 
@@ -218,7 +218,7 @@ export const updateRevenueRecord = async (req: AuthRequest, res: Response): Prom
     }
 
     // Check access rights
-    if (!canAccessCustomer(user, existing.customer_id)) {
+    if (!(await canAccessCustomer(user, existing.customer_id))) {
       res.status(403).json({ message: req.__('errors.forbidden') });
       return;
     }
@@ -230,11 +230,11 @@ export const updateRevenueRecord = async (req: AuthRequest, res: Response): Prom
     // Calculate total amount
     const total_amount = ((mm_onsite || 0) * onsitePrice) + ((mm_offshore || 0) * offshorePrice);
 
-    runQuery(
-      `UPDATE revenue_records
-       SET customer_id = ?, year = ?, month = ?, mm_onsite = ?, mm_offshore = ?,
-           unit_price = ?, unit_price_onsite = ?, unit_price_offshore = ?, total_amount = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+    await runQuery(
+      `UPDATE revenue
+       SET customer_id = $1, year = $2, month = $3, mm_onsite = $4, mm_offshore = $5,
+           unit_price = $6, unit_price_onsite = $7, unit_price_offshore = $8, total_amount = $9, notes = $10, updated_at = NOW()
+       WHERE id = $11`,
       [customer_id, year, month, mm_onsite || 0, mm_offshore || 0, unit_price || 0, onsitePrice, offshorePrice, total_amount, notes || null, recordId]
     );
 
@@ -259,8 +259,8 @@ export const deleteRevenueRecord = async (req: AuthRequest, res: Response): Prom
   }
 
   try {
-    const existing = getOne<RevenueRecord>(
-      'SELECT * FROM revenue_records WHERE id = ?',
+    const existing = await getOne<RevenueRecord>(
+      'SELECT * FROM revenue WHERE id = $1',
       [recordId]
     );
 
@@ -270,12 +270,12 @@ export const deleteRevenueRecord = async (req: AuthRequest, res: Response): Prom
     }
 
     // Check access rights
-    if (!canAccessCustomer(user, existing.customer_id)) {
+    if (!(await canAccessCustomer(user, existing.customer_id))) {
       res.status(403).json({ message: req.__('errors.forbidden') });
       return;
     }
 
-    runQuery('DELETE FROM revenue_records WHERE id = ?', [recordId]);
+    await runQuery('DELETE FROM revenue WHERE id = $1', [recordId]);
     res.json({
       message: req.__('success.deleted', { resource: req.__('resources.revenue') || 'Revenue record' })
     });
@@ -299,7 +299,7 @@ export const getRevenueStats = async (req: AuthRequest, res: Response): Promise<
   try {
     let query = `
       SELECT rr.*, c.name as customer_name
-      FROM revenue_records rr
+      FROM revenue rr
       INNER JOIN customers c ON rr.customer_id = c.id
       WHERE 1=1
     `;
@@ -308,11 +308,11 @@ export const getRevenueStats = async (req: AuthRequest, res: Response): Promise<
     // Filter by customer if specified
     if (customer_id) {
       const custId = parseInt(customer_id as string);
-      if (!canAccessCustomer(user, custId)) {
+      if (!(await canAccessCustomer(user, custId))) {
         res.status(403).json({ message: req.__('errors.forbidden') });
         return;
       }
-      query += ' AND rr.customer_id = ?';
+      query += ` AND rr.customer_id = $${params.length + 1}`;
       params.push(custId);
     }
 
@@ -321,7 +321,7 @@ export const getRevenueStats = async (req: AuthRequest, res: Response): Promise<
       query += `
         AND EXISTS (
           SELECT 1 FROM customer_teams ct
-          WHERE ct.customer_id = rr.customer_id AND ct.team_id = ?
+          WHERE ct.customer_id = rr.customer_id AND ct.team_id = $${params.length + 1}
         )
       `;
       params.push(user.teamId);
@@ -329,17 +329,19 @@ export const getRevenueStats = async (req: AuthRequest, res: Response): Promise<
 
     // Date range filter
     if (start_year && start_month) {
-      query += ' AND (rr.year > ? OR (rr.year = ? AND rr.month >= ?))';
+      const baseIndex = params.length;
+      query += ` AND (rr.year > $${baseIndex + 1} OR (rr.year = $${baseIndex + 2} AND rr.month >= $${baseIndex + 3}))`;
       params.push(start_year, start_year, start_month);
     }
     if (end_year && end_month) {
-      query += ' AND (rr.year < ? OR (rr.year = ? AND rr.month <= ?))';
+      const baseIndex = params.length;
+      query += ` AND (rr.year < $${baseIndex + 1} OR (rr.year = $${baseIndex + 2} AND rr.month <= $${baseIndex + 3}))`;
       params.push(end_year, end_year, end_month);
     }
 
     query += ' ORDER BY rr.year, rr.month';
 
-    const records = getAll<RevenueRecord>(query, params);
+    const records = await getAll<RevenueRecord>(query, params);
 
     // Calculate statistics
     const stats = {

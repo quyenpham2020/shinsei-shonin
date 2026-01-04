@@ -1,0 +1,123 @@
+[2026-01-04T10:48:28.444Z] 
+================================================================================
+
+[2026-01-04T10:48:28.470Z] TEST MODULE: Favorites-Feedback
+[2026-01-04T10:48:28.505Z] Started at: 2026/1/4 19:48:28
+[2026-01-04T10:48:28.506Z] ================================================================================
+
+[2026-01-04T10:48:28.507Z] Starting Favorites & Feedback Module Tests...
+[2026-01-04T10:48:28.508Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:28.509Z] SETUP: Login users
+[2026-01-04T10:48:28.510Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:28.511Z] 
+[Step 1] Login as user
+[2026-01-04T10:48:28.812Z] ✅ User authenticated
+[2026-01-04T10:48:28.813Z] 
+[Step 2] Login as admin
+[2026-01-04T10:48:28.917Z] ✅ Admin authenticated
+[2026-01-04T10:48:29.430Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:29.431Z] TEST 1: Get Favorites
+[2026-01-04T10:48:29.432Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:29.432Z] 
+[Step 1] Fetch user favorites
+[2026-01-04T10:48:29.443Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\get-favorites-1767523709442.json
+[2026-01-04T10:48:29.444Z] ✅ Found 0 favorites
+[2026-01-04T10:48:29.445Z] ✅ TEST PASSED: Get Favorites
+[2026-01-04T10:48:29.445Z]   Details: {
+  "totalFavorites": 0
+}
+[2026-01-04T10:48:29.953Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:29.955Z] TEST 2: Get Page Favorites
+[2026-01-04T10:48:29.955Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:29.956Z] 
+[Step 1] Fetch user page favorites
+[2026-01-04T10:48:29.963Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\get-page-favorites-1767523709962.json
+[2026-01-04T10:48:29.964Z] ✅ Found 4 page favorites
+[2026-01-04T10:48:29.964Z] ℹ️  Page favorites:
+[2026-01-04T10:48:29.965Z]   - Test Favorite Page: undefined
+[2026-01-04T10:48:29.965Z]   - Test Favorite Page: undefined
+[2026-01-04T10:48:29.966Z]   - Test Favorite Page: undefined
+[2026-01-04T10:48:29.966Z]   - Test Favorite Page: undefined
+[2026-01-04T10:48:29.967Z] ✅ TEST PASSED: Get Page Favorites
+[2026-01-04T10:48:29.967Z]   Details: {
+  "totalPageFavorites": 4
+}
+[2026-01-04T10:48:30.473Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:30.473Z] TEST 3: Create Page Favorite
+[2026-01-04T10:48:30.475Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:30.476Z] 
+[Step 1] Create new page favorite
+[2026-01-04T10:48:30.477Z] ℹ️  Favorite data: {
+  "page_path": "/test-page-1767523710476",
+  "page_name": "Test Favorite Page"
+}
+[2026-01-04T10:48:30.493Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\create-page-favorite-1767523710492.json
+[2026-01-04T10:48:30.494Z] ✅ Page favorite created successfully
+[2026-01-04T10:48:30.495Z] ✅ TEST PASSED: Create Page Favorite
+[2026-01-04T10:48:31.008Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:31.009Z] TEST 4: Submit Feedback
+[2026-01-04T10:48:31.010Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:31.010Z] 
+[Step 1] Submit new feedback
+[2026-01-04T10:48:31.011Z] ℹ️  Feedback data: {
+  "category": "suggestion",
+  "subject": "Test Feedback",
+  "content": "This is an automated test feedback submission"
+}
+[2026-01-04T10:48:31.026Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\submit-feedback-1767523711025.json
+[2026-01-04T10:48:31.027Z] ✅ Feedback submitted with ID: 7
+[2026-01-04T10:48:31.027Z] ✅ TEST PASSED: Submit Feedback
+[2026-01-04T10:48:31.028Z]   Details: {
+  "feedbackId": 7
+}
+[2026-01-04T10:48:31.529Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:31.530Z] TEST 5: Get All Feedback (Admin)
+[2026-01-04T10:48:31.530Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:31.531Z] 
+[Step 1] Fetch all feedback (admin view)
+[2026-01-04T10:48:31.540Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\get-all-feedback-1767523711539.json
+[2026-01-04T10:48:31.541Z] ✅ Found 7 feedback items
+[2026-01-04T10:48:31.542Z] ℹ️  Recent feedback:
+[2026-01-04T10:48:31.542Z]   - [7] Test Feedback (suggestion) - Status: pending
+[2026-01-04T10:48:31.543Z]   - [6] Test Feedback (suggestion) - Status: in_progress
+[2026-01-04T10:48:31.543Z]   - [5] Test Feedback (suggestion) - Status: in_progress
+[2026-01-04T10:48:31.543Z]   - [4] Test Feedback (suggestion) - Status: in_progress
+[2026-01-04T10:48:31.544Z]   - [3] Test Feedback (suggestion) - Status: in_progress
+[2026-01-04T10:48:31.544Z] ✅ TEST PASSED: Get All Feedback
+[2026-01-04T10:48:31.544Z]   Details: {
+  "totalFeedback": 7
+}
+[2026-01-04T10:48:32.054Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:48:32.055Z] TEST 6: Update Feedback Status
+[2026-01-04T10:48:32.055Z] --------------------------------------------------------------------------------
+[2026-01-04T10:48:32.056Z] 
+[Step 1] Update feedback 7
+[2026-01-04T10:48:32.057Z] ℹ️  Update data: {
+  "status": "in_progress",
+  "admin_response": "We are looking into this feedback"
+}
+[2026-01-04T10:48:32.067Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\update-feedback-status-1767523712066.json
+[2026-01-04T10:48:32.068Z] ✅ Feedback status updated successfully
+[2026-01-04T10:48:32.069Z] ✅ TEST PASSED: Update Feedback Status
+[2026-01-04T10:48:32.070Z]   Details: {
+  "feedbackId": 7,
+  "newStatus": "in_progress"
+}
+[2026-01-04T10:48:32.071Z] 
+================================================================================
+[2026-01-04T10:48:32.072Z] TEST SUMMARY
+[2026-01-04T10:48:32.072Z] ================================================================================
+[2026-01-04T10:48:32.073Z] Total Tests: 6
+[2026-01-04T10:48:32.073Z] Passed: 6
+[2026-01-04T10:48:32.074Z] Failed: 0
+[2026-01-04T10:48:32.074Z] Duration: 3.63s
+[2026-01-04T10:48:32.075Z] Log file: C:\Work\shinsei-shonin\tests\logs\Favorites-Feedback-1767523708443.log
+[2026-01-04T10:48:32.075Z] ================================================================================
+

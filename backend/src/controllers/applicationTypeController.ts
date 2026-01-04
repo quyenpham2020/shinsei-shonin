@@ -16,24 +16,24 @@ interface ApplicationType {
 }
 
 // 申請種別一覧取得
-export const getApplicationTypes = (req: AuthRequest, res: Response): void => {
+export const getApplicationTypes = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { includeInactive } = req.query;
 
     let sql = `
-      SELECT id, code, name, description, requires_amount, requires_attachment,
-             approval_levels, display_order, is_active, created_at
+      SELECT id, code, name, description, requires_amount,
+             is_active, created_at
       FROM application_types
     `;
 
     // 管理者以外またはincludeInactiveがfalseの場合は有効なもののみ
     if (!includeInactive || includeInactive !== 'true') {
-      sql += ` WHERE is_active = 1`;
+      sql += ` WHERE is_active = true`;
     }
 
-    sql += ` ORDER BY display_order ASC, code ASC`;
+    sql += ` ORDER BY code ASC`;
 
-    const applicationTypes = getAll<ApplicationType>(sql);
+    const applicationTypes = await getAll<ApplicationType>(sql);
     res.json(applicationTypes);
   } catch (error) {
     console.error('Get application types error:', error);
@@ -42,14 +42,14 @@ export const getApplicationTypes = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請種別取得（単一）
-export const getApplicationType = (req: AuthRequest, res: Response): void => {
+export const getApplicationType = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const applicationType = getOne<ApplicationType>(`
+    const applicationType = await getOne<ApplicationType>(`
       SELECT id, code, name, description, requires_amount, requires_attachment,
              approval_levels, display_order, is_active, created_at
       FROM application_types
-      WHERE id = ?
+      WHERE id = $1
     `, [Number(id)]);
 
     if (!applicationType) {
@@ -65,7 +65,7 @@ export const getApplicationType = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請種別作成
-export const createApplicationType = (req: AuthRequest, res: Response): void => {
+export const createApplicationType = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { code, name, description, requiresAmount, requiresAttachment, approvalLevels, displayOrder } = req.body;
 
@@ -76,32 +76,32 @@ export const createApplicationType = (req: AuthRequest, res: Response): void => 
     }
 
     // コードの重複チェック
-    const existingByCode = getOne(`SELECT id FROM application_types WHERE code = ?`, [code]);
+    const existingByCode = await getOne(`SELECT id FROM application_types WHERE code = $1`, [code]);
     if (existingByCode) {
       res.status(400).json({ message: 'この種別コードは既に使用されています' });
       return;
     }
 
     // 申請種別作成
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO application_types (code, name, description, requires_amount, requires_attachment, approval_levels, display_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
     `, [
       code,
       name,
       description || null,
-      requiresAmount ? 1 : 0,
-      requiresAttachment ? 1 : 0,
+      requiresAmount ? true : false,
+      requiresAttachment ? true : false,
       approvalLevels || 1,
       displayOrder || 0
     ]);
 
-    const newApplicationType = getOne<ApplicationType>(`
+    const newApplicationType = await getOne<ApplicationType>(`
       SELECT id, code, name, description, requires_amount, requires_attachment,
              approval_levels, display_order, is_active, created_at
       FROM application_types
-      WHERE id = ?
-    `, [result.lastInsertRowid]);
+      WHERE id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newApplicationType);
   } catch (error) {
@@ -111,13 +111,13 @@ export const createApplicationType = (req: AuthRequest, res: Response): void => 
 };
 
 // 申請種別更新
-export const updateApplicationType = (req: AuthRequest, res: Response): void => {
+export const updateApplicationType = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { code, name, description, requiresAmount, requiresAttachment, approvalLevels, displayOrder, isActive } = req.body;
 
     // 申請種別の存在確認
-    const existing = getOne<{ id: number }>(`SELECT id FROM application_types WHERE id = ?`, [Number(id)]);
+    const existing = await getOne<{ id: number }>(`SELECT id FROM application_types WHERE id = $1`, [Number(id)]);
     if (!existing) {
       res.status(404).json({ message: '申請種別が見つかりません' });
       return;
@@ -125,8 +125,8 @@ export const updateApplicationType = (req: AuthRequest, res: Response): void => 
 
     // コードの重複チェック（自分以外）
     if (code) {
-      const existingByCode = getOne<{ id: number }>(
-        `SELECT id FROM application_types WHERE code = ? AND id != ?`,
+      const existingByCode = await getOne<{ id: number }>(
+        `SELECT id FROM application_types WHERE code = $1 AND id != $2`,
         [code, Number(id)]
       );
       if (existingByCode) {
@@ -136,34 +136,34 @@ export const updateApplicationType = (req: AuthRequest, res: Response): void => 
     }
 
     // 申請種別更新
-    runQuery(`
+    await runQuery(`
       UPDATE application_types
-      SET code = COALESCE(?, code),
-          name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          requires_amount = COALESCE(?, requires_amount),
-          requires_attachment = COALESCE(?, requires_attachment),
-          approval_levels = COALESCE(?, approval_levels),
-          display_order = COALESCE(?, display_order),
-          is_active = COALESCE(?, is_active)
-      WHERE id = ?
+      SET code = COALESCE($1, code),
+          name = COALESCE($2, name),
+          description = COALESCE($3, description),
+          requires_amount = COALESCE($4, requires_amount),
+          requires_attachment = COALESCE($5, requires_attachment),
+          approval_levels = COALESCE($6, approval_levels),
+          display_order = COALESCE($7, display_order),
+          is_active = COALESCE($8, is_active)
+      WHERE id = $9
     `, [
       code || null,
       name || null,
       description !== undefined ? description : null,
-      requiresAmount !== undefined ? (requiresAmount ? 1 : 0) : null,
-      requiresAttachment !== undefined ? (requiresAttachment ? 1 : 0) : null,
+      requiresAmount !== undefined ? (requiresAmount ? true : false) : null,
+      requiresAttachment !== undefined ? (requiresAttachment ? true : false) : null,
       approvalLevels || null,
       displayOrder !== undefined ? displayOrder : null,
-      isActive !== undefined ? (isActive ? 1 : 0) : null,
+      isActive !== undefined ? (isActive ? true : false) : null,
       Number(id)
     ]);
 
-    const updatedApplicationType = getOne<ApplicationType>(`
+    const updatedApplicationType = await getOne<ApplicationType>(`
       SELECT id, code, name, description, requires_amount, requires_attachment,
              approval_levels, display_order, is_active, created_at
       FROM application_types
-      WHERE id = ?
+      WHERE id = $1
     `, [Number(id)]);
 
     res.json(updatedApplicationType);
@@ -174,20 +174,20 @@ export const updateApplicationType = (req: AuthRequest, res: Response): void => 
 };
 
 // 申請種別削除
-export const deleteApplicationType = (req: AuthRequest, res: Response): void => {
+export const deleteApplicationType = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
     // 申請種別の存在確認
-    const existing = getOne<{ id: number; code: string }>(`SELECT id, code FROM application_types WHERE id = ?`, [Number(id)]);
+    const existing = await getOne<{ id: number; code: string }>(`SELECT id, code FROM application_types WHERE id = $1`, [Number(id)]);
     if (!existing) {
       res.status(404).json({ message: '申請種別が見つかりません' });
       return;
     }
 
     // この種別を使用している申請があるかチェック
-    const hasApplications = getOne<{ count: number }>(
-      `SELECT COUNT(*) as count FROM applications WHERE type = ?`,
+    const hasApplications = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM applications WHERE type = $1`,
       [existing.code]
     );
     if (hasApplications && hasApplications.count > 0) {
@@ -196,7 +196,7 @@ export const deleteApplicationType = (req: AuthRequest, res: Response): void => 
     }
 
     // 申請種別削除
-    runQuery(`DELETE FROM application_types WHERE id = ?`, [Number(id)]);
+    await runQuery(`DELETE FROM application_types WHERE id = $1`, [Number(id)]);
 
     res.json({ message: '申請種別を削除しました' });
   } catch (error) {

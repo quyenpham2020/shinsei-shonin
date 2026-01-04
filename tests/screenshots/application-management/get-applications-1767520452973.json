@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": [],
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "2",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:54:12 GMT",
+    "etag": "W/\"2-l9Fw4VUO7kr8CvBlt4zaMCqXZ0w\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

@@ -95,15 +95,38 @@ export async function initializeSchema(): Promise<void> {
   await db.query(`
     CREATE TABLE IF NOT EXISTS application_types (
       id SERIAL PRIMARY KEY,
+      code VARCHAR(50) UNIQUE NOT NULL,
       name VARCHAR(255) NOT NULL,
       description TEXT,
       default_approver_id INTEGER,
       requires_amount BOOLEAN DEFAULT false,
+      requires_attachment BOOLEAN DEFAULT false,
+      approval_levels INTEGER DEFAULT 1,
+      display_order INTEGER DEFAULT 0,
       is_active BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (default_approver_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
+
+  // Add missing columns to application_types if they don't exist
+  const appTypeAlterQueries = [
+    `ALTER TABLE application_types ADD COLUMN IF NOT EXISTS code VARCHAR(50) UNIQUE`,
+    `ALTER TABLE application_types ADD COLUMN IF NOT EXISTS requires_attachment BOOLEAN DEFAULT false`,
+    `ALTER TABLE application_types ADD COLUMN IF NOT EXISTS approval_levels INTEGER DEFAULT 1`,
+    `ALTER TABLE application_types ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0`
+  ];
+
+  for (const alterQuery of appTypeAlterQueries) {
+    try {
+      await db.query(alterQuery);
+    } catch (e: any) {
+      // Column may already exist, skip
+      if (!e.message?.includes('already exists')) {
+        console.log(`Skipping ALTER TABLE application_types: ${e.message}`);
+      }
+    }
+  }
 
   // Create applications table
   await db.query(`
@@ -284,10 +307,34 @@ export async function initializeSchema(): Promise<void> {
       subject VARCHAR(255) NOT NULL,
       content TEXT NOT NULL,
       status VARCHAR(50) DEFAULT 'pending',
+      admin_response TEXT,
+      responded_at TIMESTAMP,
+      responded_by INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (responded_by) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
+
+  // Add missing columns to feedback table if they don't exist (using conditional ALTER)
+  const alterQueries = [
+    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS admin_response TEXT`,
+    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS responded_at TIMESTAMP`,
+    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS responded_by INTEGER REFERENCES users(id) ON DELETE SET NULL`,
+    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+  ];
+
+  for (const alterQuery of alterQueries) {
+    try {
+      await db.query(alterQuery);
+    } catch (e: any) {
+      // Column may already exist or syntax not supported, skip
+      if (!e.message?.includes('already exists')) {
+        console.log(`Skipping ALTER TABLE: ${e.message}`);
+      }
+    }
+  }
 
   // Create system_settings table
   await db.query(`
@@ -334,7 +381,31 @@ export async function initializeSchema(): Promise<void> {
     )
   `);
 
-  // Create system_access table
+  // Create systems table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS systems (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create user_system_access table
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_system_access (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      system_id VARCHAR(50) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE,
+      UNIQUE(user_id, system_id)
+    )
+  `);
+
+  // Create system_access table (for page-level permissions)
   await db.query(`
     CREATE TABLE IF NOT EXISTS system_access (
       id SERIAL PRIMARY KEY,

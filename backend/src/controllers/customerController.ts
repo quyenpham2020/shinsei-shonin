@@ -24,10 +24,10 @@ export const getCustomers = async (req: AuthRequest, res: Response): Promise<voi
   try {
     // Admin, BOD, GM see all customers
     if (user.role === 'admin' || user.role === 'bod' || user.role === 'gm') {
-      const customers = getAll<CustomerWithTeams>(`
+      const customers = await getAll<CustomerWithTeams>(`
         SELECT c.*,
-          GROUP_CONCAT(DISTINCT ct.team_id) as team_ids,
-          GROUP_CONCAT(DISTINCT t.name) as team_names
+          STRING_AGG(DISTINCT ct.team_id::text, ',') as team_ids,
+          STRING_AGG(DISTINCT t.name, ',') as team_names
         FROM customers c
         LEFT JOIN customer_teams ct ON c.id = ct.customer_id
         LEFT JOIN teams t ON ct.team_id = t.id
@@ -52,14 +52,14 @@ export const getCustomers = async (req: AuthRequest, res: Response): Promise<voi
         return;
       }
 
-      const customers = getAll<CustomerWithTeams>(`
+      const customers = await getAll<CustomerWithTeams>(`
         SELECT c.*,
-          GROUP_CONCAT(DISTINCT ct.team_id) as team_ids,
-          GROUP_CONCAT(DISTINCT t.name) as team_names
+          STRING_AGG(DISTINCT ct.team_id::text, ',') as team_ids,
+          STRING_AGG(DISTINCT t.name, ',') as team_names
         FROM customers c
         INNER JOIN customer_teams ct ON c.id = ct.customer_id
         LEFT JOIN teams t ON ct.team_id = t.id
-        WHERE ct.team_id = ?
+        WHERE ct.team_id = $1
         GROUP BY c.id
         ORDER BY c.name
       `, [user.teamId]);
@@ -88,14 +88,14 @@ export const getCustomer = async (req: AuthRequest, res: Response): Promise<void
   const customerId = parseInt(req.params.id);
 
   try {
-    const customer = getOne<CustomerWithTeams>(`
+    const customer = await getOne<CustomerWithTeams>(`
       SELECT c.*,
-        GROUP_CONCAT(DISTINCT ct.team_id) as team_ids,
-        GROUP_CONCAT(DISTINCT t.name) as team_names
+        STRING_AGG(DISTINCT ct.team_id::text, ',') as team_ids,
+        STRING_AGG(DISTINCT t.name, ',') as team_names
       FROM customers c
       LEFT JOIN customer_teams ct ON c.id = ct.customer_id
       LEFT JOIN teams t ON ct.team_id = t.id
-      WHERE c.id = ?
+      WHERE c.id = $1
       GROUP BY c.id
     `, [customerId]);
 
@@ -132,9 +132,9 @@ export const getCustomer = async (req: AuthRequest, res: Response): Promise<void
 };
 
 // Create customer (admin only)
-export const createCustomer = (req: AuthRequest, res: Response): void => {
+export const createCustomer = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user!;
-  const { name, description, team_ids } = req.body;
+  const { name, code, contactPerson, email, phone, address, team_ids } = req.body;
 
   if (user.role !== 'admin') {
     res.status(403).json({ message: req.__('errors.forbidden') });
@@ -142,18 +142,18 @@ export const createCustomer = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    const result = runQuery(
-      'INSERT INTO customers (name, description) VALUES (?, ?)',
-      [name, description || null]
+    const result = await runQuery(
+      'INSERT INTO customers (name, code, contact_person, email, phone, address) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [name, code || null, contactPerson || null, email || null, phone || null, address || null]
     );
 
-    const customerId = result.lastInsertRowid;
+    const customerId = result.rows[0].id;
 
     // Add team associations
     if (team_ids && Array.isArray(team_ids) && team_ids.length > 0) {
       for (const teamId of team_ids) {
-        runQuery(
-          'INSERT INTO customer_teams (customer_id, team_id) VALUES (?, ?)',
+        await runQuery(
+          'INSERT INTO customer_teams (customer_id, team_id) VALUES ($1, $2)',
           [customerId, teamId]
         );
       }
@@ -170,7 +170,7 @@ export const createCustomer = (req: AuthRequest, res: Response): void => {
 };
 
 // Update customer (admin only)
-export const updateCustomer = (req: AuthRequest, res: Response): void => {
+export const updateCustomer = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user!;
   const customerId = parseInt(req.params.id);
   const { name, description, is_active, team_ids } = req.body;
@@ -181,20 +181,20 @@ export const updateCustomer = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    runQuery(
+    await runQuery(
       `UPDATE customers
-       SET name = ?, description = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+       SET name = $1, description = $2, is_active = $3, updated_at = NOW()
+       WHERE id = $4`,
       [name, description || null, is_active, customerId]
     );
 
     // Update team associations
-    runQuery('DELETE FROM customer_teams WHERE customer_id = ?', [customerId]);
+    await runQuery('DELETE FROM customer_teams WHERE customer_id = $1', [customerId]);
 
     if (team_ids && Array.isArray(team_ids) && team_ids.length > 0) {
       for (const teamId of team_ids) {
-        runQuery(
-          'INSERT INTO customer_teams (customer_id, team_id) VALUES (?, ?)',
+        await runQuery(
+          'INSERT INTO customer_teams (customer_id, team_id) VALUES ($1, $2)',
           [customerId, teamId]
         );
       }
@@ -210,7 +210,7 @@ export const updateCustomer = (req: AuthRequest, res: Response): void => {
 };
 
 // Delete customer (admin only)
-export const deleteCustomer = (req: AuthRequest, res: Response): void => {
+export const deleteCustomer = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user!;
   const customerId = parseInt(req.params.id);
 
@@ -220,7 +220,7 @@ export const deleteCustomer = (req: AuthRequest, res: Response): void => {
   }
 
   try {
-    runQuery('DELETE FROM customers WHERE id = ?', [customerId]);
+    await runQuery('DELETE FROM customers WHERE id = $1', [customerId]);
     res.json({
       message: req.__('success.deleted', { resource: req.__('resources.customer') || 'Customer' })
     });

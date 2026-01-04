@@ -1,0 +1,21 @@
+{
+  "status": 201,
+  "ok": true,
+  "data": {
+    "id": 1,
+    "user_id": 18,
+    "page_path": "/test-page",
+    "page_name": "Test Favorite Page",
+    "created_at": "2026-01-04T09:53:48.813Z"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "119",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:53:48 GMT",
+    "etag": "W/\"77-44P+HOpFz37ygOAQzB5ivLLa6Ec\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

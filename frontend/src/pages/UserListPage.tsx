@@ -33,6 +33,8 @@ import {
   FormControlLabel,
   Switch,
   Tooltip,
+  Checkbox,
+  ButtonGroup,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -43,6 +45,9 @@ import {
   Business as BusinessIcon,
   FileUpload as ImportIcon,
   FileDownload as ExportIcon,
+  UnfoldMore as ExpandAllIcon,
+  UnfoldLess as CollapseAllIcon,
+  DeleteSweep as BulkDeleteIcon,
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { userService, CreateUserData, UpdateUserData } from '../services/userService';
@@ -101,6 +106,7 @@ const UserListPage: React.FC = () => {
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // Group users by department
   const usersByDepartment = useMemo(() => {
@@ -260,6 +266,52 @@ const UserListPage: React.FC = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    if (!window.confirm(`選択した${selectedIds.length}件のユーザーを削除しますか？`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await userService.bulkDelete(selectedIds);
+      setSuccessMessage(`${selectedIds.length}件のユーザーを削除しました`);
+      setSelectedIds([]);
+      fetchUsers();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        : 'ユーザーの一括削除に失敗しました';
+      setError(errorMessage || 'ユーザーの一括削除に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === users.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(users.map(u => u.id));
+    }
+  };
+
+  const handleSelectUser = (id: number) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleExpandAll = () => {
+    const depts = Object.keys(usersByDepartment);
+    setExpandedDepts(depts);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedDepts([]);
+  };
+
   const handlePasswordOpen = (user: UserWithExempt) => {
     setSelectedUser(user);
     setNewPassword('');
@@ -388,7 +440,27 @@ const UserListPage: React.FC = () => {
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           ユーザー管理
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <ButtonGroup variant="outlined" size="small">
+            <Button startIcon={<ExpandAllIcon />} onClick={handleExpandAll}>
+              すべて展開
+            </Button>
+            <Button startIcon={<CollapseAllIcon />} onClick={handleCollapseAll}>
+              すべて省略
+            </Button>
+          </ButtonGroup>
+          {selectedIds.length > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<BulkDeleteIcon />}
+              onClick={handleBulkDelete}
+              disabled={isSubmitting}
+            >
+              選択削除 ({selectedIds.length})
+            </Button>
+          )}
+          <Box sx={{ flex: 1 }} />
           <input
             ref={fileInputRef}
             type="file"
@@ -441,6 +513,16 @@ const UserListPage: React.FC = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            indeterminate={
+                              selectedIds.length > 0 &&
+                              selectedIds.length < users.length
+                            }
+                            checked={users.length > 0 && selectedIds.length === users.length}
+                            onChange={handleSelectAll}
+                          />
+                        </TableCell>
                         <TableCell>社員ID</TableCell>
                         <TableCell>氏名</TableCell>
                         <TableCell>メールアドレス</TableCell>
@@ -451,7 +533,13 @@ const UserListPage: React.FC = () => {
                     </TableHead>
                     <TableBody>
                       {deptUsers.map((user) => (
-                        <TableRow key={user.id} hover>
+                        <TableRow key={user.id} hover selected={selectedIds.includes(user.id)}>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={selectedIds.includes(user.id)}
+                              onChange={() => handleSelectUser(user.id)}
+                            />
+                          </TableCell>
                           <TableCell>{user.employeeId}</TableCell>
                           <TableCell>{user.name}</TableCell>
                           <TableCell>{user.email}</TableCell>

@@ -39,8 +39,8 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
     }
 
     // Find user by employee ID and email
-    const user = getOne<User>(
-      'SELECT * FROM users WHERE employee_id = ? AND email = ?',
+    const user = await getOne<User>(
+      'SELECT * FROM users WHERE employee_id = $1 AND email = $2',
       [employeeId, email]
     );
 
@@ -61,8 +61,8 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
     const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     // Save hashed token to database
-    runQuery(
-      'UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?',
+    await runQuery(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
       [hashedToken, expires, user.id]
     );
 
@@ -101,10 +101,10 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     const hashedToken = hashToken(token);
 
     // Find user with valid token
-    const user = getOne<User>(
+    const user = await getOne<User>(
       `SELECT * FROM users
-       WHERE password_reset_token = ?
-       AND password_reset_expires > datetime('now')`,
+       WHERE password_reset_token = $1
+       AND password_reset_expires > NOW()`,
       [hashedToken]
     );
 
@@ -117,14 +117,14 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password and clear reset token
-    runQuery(
+    await runQuery(
       `UPDATE users SET
-        password = ?,
+        password = $1,
         password_reset_token = NULL,
         password_reset_expires = NULL,
-        must_change_password = 0,
-        password_changed_at = datetime('now')
-       WHERE id = ?`,
+        must_change_password = false,
+        password_changed_at = NOW()
+       WHERE id = $2`,
       [hashedPassword, user.id]
     );
 
@@ -152,7 +152,7 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
     }
 
     // Get user from database to verify current password
-    const dbUser = getOne<User>('SELECT * FROM users WHERE id = ?', [user.id]);
+    const dbUser = await getOne<User>('SELECT * FROM users WHERE id = $1', [user.id]);
 
     if (!dbUser) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
@@ -177,12 +177,12 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password
-    runQuery(
+    await runQuery(
       `UPDATE users SET
-        password = ?,
-        must_change_password = 0,
-        password_changed_at = datetime('now')
-       WHERE id = ?`,
+        password = $1,
+        must_change_password = false,
+        password_changed_at = NOW()
+       WHERE id = $2`,
       [hashedPassword, user.id]
     );
 
@@ -210,7 +210,7 @@ export const forceChangePassword = async (req: AuthRequest, res: Response): Prom
     }
 
     // Get user from database
-    const dbUser = getOne<User>('SELECT * FROM users WHERE id = ?', [user.id]);
+    const dbUser = await getOne<User>('SELECT * FROM users WHERE id = $1', [user.id]);
 
     if (!dbUser) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
@@ -228,12 +228,12 @@ export const forceChangePassword = async (req: AuthRequest, res: Response): Prom
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password and clear must_change_password flag
-    runQuery(
+    await runQuery(
       `UPDATE users SET
-        password = ?,
-        must_change_password = 0,
-        password_changed_at = datetime('now')
-       WHERE id = ?`,
+        password = $1,
+        must_change_password = false,
+        password_changed_at = NOW()
+       WHERE id = $2`,
       [hashedPassword, user.id]
     );
 
@@ -245,7 +245,7 @@ export const forceChangePassword = async (req: AuthRequest, res: Response): Prom
 };
 
 // トークン検証 (リセットページ用)
-export const verifyResetToken = (req: Request, res: Response): void => {
+export const verifyResetToken = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.params;
 
@@ -256,10 +256,10 @@ export const verifyResetToken = (req: Request, res: Response): void => {
 
     const hashedToken = hashToken(token);
 
-    const user = getOne<User>(
+    const user = await getOne<User>(
       `SELECT id, employee_id, name FROM users
-       WHERE password_reset_token = ?
-       AND password_reset_expires > datetime('now')`,
+       WHERE password_reset_token = $1
+       AND password_reset_expires > NOW()`,
       [hashedToken]
     );
 

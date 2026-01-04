@@ -10,35 +10,35 @@ interface Favorite {
 }
 
 // お気に入り切り替え（追加/削除）
-export const toggleFavorite = (req: AuthRequest, res: Response): void => {
+export const toggleFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { applicationId } = req.params;
     const user = req.user!;
 
     // 申請の存在確認
-    const application = getOne('SELECT id FROM applications WHERE id = ?', [Number(applicationId)]);
+    const application = await getOne('SELECT id FROM applications WHERE id = $1', [Number(applicationId)]);
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
       return;
     }
 
     // 既にお気に入りかチェック
-    const existing = getOne<Favorite>(
-      'SELECT * FROM favorites WHERE user_id = ? AND application_id = ?',
+    const existing = await getOne<Favorite>(
+      'SELECT * FROM favorites WHERE user_id = $1 AND application_id = $2',
       [user.id, Number(applicationId)]
     );
 
     if (existing) {
       // 削除
-      runQuery(
-        'DELETE FROM favorites WHERE user_id = ? AND application_id = ?',
+      await runQuery(
+        'DELETE FROM favorites WHERE user_id = $1 AND application_id = $2',
         [user.id, Number(applicationId)]
       );
       res.json({ is_favorite: false, message: 'お気に入りから削除しました' });
     } else {
       // 追加
-      runQuery(
-        'INSERT INTO favorites (user_id, application_id) VALUES (?, ?)',
+      await runQuery(
+        'INSERT INTO favorites (user_id, application_id) VALUES ($1, $2)',
         [user.id, Number(applicationId)]
       );
       res.json({ is_favorite: true, message: 'お気に入りに追加しました' });
@@ -50,11 +50,11 @@ export const toggleFavorite = (req: AuthRequest, res: Response): void => {
 };
 
 // ユーザーのお気に入り一覧取得
-export const getUserFavorites = (req: AuthRequest, res: Response): void => {
+export const getUserFavorites = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
 
-    const favorites = getAll(`
+    const favorites = await getAll(`
       SELECT
         a.*,
         u1.name as applicant_name,
@@ -65,7 +65,7 @@ export const getUserFavorites = (req: AuthRequest, res: Response): void => {
       JOIN applications a ON f.application_id = a.id
       LEFT JOIN users u1 ON a.applicant_id = u1.id
       LEFT JOIN users u2 ON a.approver_id = u2.id
-      WHERE f.user_id = ?
+      WHERE f.user_id = $1
       ORDER BY f.created_at DESC
     `, [user.id]);
 
@@ -77,13 +77,13 @@ export const getUserFavorites = (req: AuthRequest, res: Response): void => {
 };
 
 // お気に入り状態チェック
-export const checkFavorite = (req: AuthRequest, res: Response): void => {
+export const checkFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { applicationId } = req.params;
     const user = req.user!;
 
-    const existing = getOne<Favorite>(
-      'SELECT * FROM favorites WHERE user_id = ? AND application_id = ?',
+    const existing = await getOne<Favorite>(
+      'SELECT * FROM favorites WHERE user_id = $1 AND application_id = $2',
       [user.id, Number(applicationId)]
     );
 
@@ -95,13 +95,13 @@ export const checkFavorite = (req: AuthRequest, res: Response): void => {
 };
 
 // お気に入り削除
-export const removeFavorite = (req: AuthRequest, res: Response): void => {
+export const removeFavorite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { applicationId } = req.params;
     const user = req.user!;
 
-    const existing = getOne<Favorite>(
-      'SELECT * FROM favorites WHERE user_id = ? AND application_id = ?',
+    const existing = await getOne<Favorite>(
+      'SELECT * FROM favorites WHERE user_id = $1 AND application_id = $2',
       [user.id, Number(applicationId)]
     );
 
@@ -110,8 +110,8 @@ export const removeFavorite = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    runQuery(
-      'DELETE FROM favorites WHERE user_id = ? AND application_id = ?',
+    await runQuery(
+      'DELETE FROM favorites WHERE user_id = $1 AND application_id = $2',
       [user.id, Number(applicationId)]
     );
 

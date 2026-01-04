@@ -1,0 +1,153 @@
+[2026-01-04T10:44:47.079Z] 
+================================================================================
+
+[2026-01-04T10:44:47.082Z] TEST MODULE: User-Management
+[2026-01-04T10:44:47.096Z] Started at: 2026/1/4 19:44:47
+[2026-01-04T10:44:47.096Z] ================================================================================
+
+[2026-01-04T10:44:47.097Z] Starting User Management Module Tests...
+[2026-01-04T10:44:47.097Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:47.098Z] SETUP: Login as admin
+[2026-01-04T10:44:47.098Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:47.208Z] ✅ Admin authenticated successfully
+[2026-01-04T10:44:47.710Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:47.711Z] TEST 1: Get All Users
+[2026-01-04T10:44:47.711Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:47.711Z] 
+[Step 1] Fetch all users from database
+[2026-01-04T10:44:47.715Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\user-management\get-all-users-1767523487714.json
+[2026-01-04T10:44:47.716Z] ✅ Found 10 users in system
+[2026-01-04T10:44:47.716Z] ℹ️  Sample users:
+[2026-01-04T10:44:47.716Z]   - dev001: Developer 1 (user) - g1
+[2026-01-04T10:44:47.716Z]   - teamlead001: Team Leader 1 (onsite_leader) - g1
+[2026-01-04T10:44:47.716Z]   - admin: admin (admin) - g7
+[2026-01-04T10:44:47.716Z]   - g71: g71 (user) - g7
+[2026-01-04T10:44:47.716Z]   - quyen: quyen (gm) - g7
+[2026-01-04T10:44:47.717Z] ✅ TEST PASSED: Get All Users
+[2026-01-04T10:44:47.717Z]   Details: {
+  "totalUsers": 10,
+  "sampleCount": 5
+}
+[2026-01-04T10:44:48.224Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:48.225Z] TEST 2: Create New User
+[2026-01-04T10:44:48.225Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:48.225Z] 
+[Step 1] Create new user
+[2026-01-04T10:44:48.225Z] ℹ️  Creating user: {
+  "employeeId": "test_1767523488225",
+  "name": "Test User",
+  "email": "test_1767523488225@example.com",
+  "password": "password123",
+  "department": "g7",
+  "role": "user"
+}
+[2026-01-04T10:44:48.307Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\user-management\create-user-1767523488306.json
+[2026-01-04T10:44:48.307Z] ✅ User created successfully with ID: 28
+[2026-01-04T10:44:48.307Z] ✅ TEST PASSED: Create New User
+[2026-01-04T10:44:48.308Z]   Details: {
+  "userId": 28,
+  "employeeId": "test_1767523488225"
+}
+[2026-01-04T10:44:48.815Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:48.816Z] TEST 3: Get User by ID
+[2026-01-04T10:44:48.816Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:48.816Z] 
+[Step 1] Fetch user with ID: 28
+[2026-01-04T10:44:48.820Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\user-management\get-user-by-id-1767523488819.json
+[2026-01-04T10:44:48.820Z] ✅ User details retrieved: Test User
+[2026-01-04T10:44:48.820Z] ℹ️  User info: {
+  "id": 28,
+  "employee_id": "test_1767523488225",
+  "name": "Test User",
+  "email": "test_1767523488225@example.com",
+  "department": "g7",
+  "role": "user",
+  "created_at": "2026-01-04T10:44:48.295Z"
+}
+[2026-01-04T10:44:48.821Z] ✅ TEST PASSED: Get User by ID
+[2026-01-04T10:44:48.821Z]   Details: {
+  "userId": 28,
+  "name": "Test User"
+}
+[2026-01-04T10:44:49.328Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:49.328Z] TEST 4: Update User
+[2026-01-04T10:44:49.329Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:49.329Z] 
+[Step 1] Update user 28
+[2026-01-04T10:44:49.329Z] ℹ️  Updates: {
+  "name": "Updated Test User",
+  "department": "g1"
+}
+[2026-01-04T10:44:49.341Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\user-management\update-user-1767523489340.json
+[2026-01-04T10:44:49.341Z] ✅ User updated successfully
+[2026-01-04T10:44:49.341Z] 
+[Step 2] Verify update
+[2026-01-04T10:44:49.345Z] ✅ Update verified successfully
+[2026-01-04T10:44:49.345Z] ✅ TEST PASSED: Update User
+[2026-01-04T10:44:49.345Z]   Details: {
+  "userId": 28,
+  "updates": {
+    "name": "Updated Test User",
+    "department": "g1"
+  }
+}
+[2026-01-04T10:44:49.854Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:49.854Z] TEST 5: User Roles & Permissions
+[2026-01-04T10:44:49.855Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:49.855Z] 
+[Step 1] Get users grouped by role
+[2026-01-04T10:44:49.858Z] ℹ️  Users by role:
+[2026-01-04T10:44:49.859Z]   user: 4 users
+[2026-01-04T10:44:49.859Z]   onsite_leader: 3 users
+[2026-01-04T10:44:49.859Z]   admin: 1 users
+[2026-01-04T10:44:49.859Z]   gm: 2 users
+[2026-01-04T10:44:49.859Z]   bod: 1 users
+[2026-01-04T10:44:49.859Z] ✅ TEST PASSED: User Roles & Permissions
+[2026-01-04T10:44:49.859Z]   Details: {
+  "roles": [
+    "user",
+    "onsite_leader",
+    "admin",
+    "gm",
+    "bod"
+  ],
+  "distribution": {
+    "user": 4,
+    "onsite_leader": 3,
+    "admin": 1,
+    "gm": 2,
+    "bod": 1
+  }
+}
+[2026-01-04T10:44:50.365Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T10:44:50.366Z] TEST 6: Delete User
+[2026-01-04T10:44:50.366Z] --------------------------------------------------------------------------------
+[2026-01-04T10:44:50.366Z] 
+[Step 1] Delete user 28
+[2026-01-04T10:44:50.383Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\user-management\delete-user-1767523490382.json
+[2026-01-04T10:44:50.383Z] ✅ User deleted successfully
+[2026-01-04T10:44:50.383Z] 
+[Step 2] Verify deletion
+[2026-01-04T10:44:50.386Z] ✅ Deletion verified
+[2026-01-04T10:44:50.387Z] ✅ TEST PASSED: Delete User
+[2026-01-04T10:44:50.387Z]   Details: {
+  "userId": 28
+}
+[2026-01-04T10:44:50.387Z] 
+================================================================================
+[2026-01-04T10:44:50.387Z] TEST SUMMARY
+[2026-01-04T10:44:50.388Z] ================================================================================
+[2026-01-04T10:44:50.388Z] Total Tests: 6
+[2026-01-04T10:44:50.388Z] Passed: 6
+[2026-01-04T10:44:50.388Z] Failed: 0
+[2026-01-04T10:44:50.388Z] Duration: 3.31s
+[2026-01-04T10:44:50.388Z] Log file: C:\Work\shinsei-shonin\tests\logs\User-Management-1767523487079.log
+[2026-01-04T10:44:50.388Z] ================================================================================
+

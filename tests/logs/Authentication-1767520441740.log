@@ -1,0 +1,89 @@
+[2026-01-04T09:54:01.740Z] 
+================================================================================
+
+[2026-01-04T09:54:01.744Z] TEST MODULE: Authentication
+[2026-01-04T09:54:01.757Z] Started at: 2026/1/4 18:54:01
+[2026-01-04T09:54:01.757Z] ================================================================================
+
+[2026-01-04T09:54:01.758Z] Starting Authentication Module Tests...
+[2026-01-04T09:54:01.758Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:01.758Z] TEST 1: User Login
+[2026-01-04T09:54:01.758Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:01.759Z] 
+[Step 1] Login as admin user
+[2026-01-04T09:54:01.930Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\authentication\admin-login-1767520441929.json
+[2026-01-04T09:54:01.930Z] ✅ Admin logged in: admin (g7)
+[2026-01-04T09:54:01.930Z] ℹ️  Token: eyJhbGciOiJIUzI1NiIs...
+[2026-01-04T09:54:01.931Z] 
+[Step 2] Login as regular user
+[2026-01-04T09:54:01.996Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\authentication\user-login-1767520441995.json
+[2026-01-04T09:54:01.996Z] ✅ User logged in: quyet (g7)
+[2026-01-04T09:54:01.997Z] ℹ️  Token: eyJhbGciOiJIUzI1NiIs...
+[2026-01-04T09:54:01.997Z] 
+[Step 3] Test invalid credentials
+[2026-01-04T09:54:02.000Z] ✅ Invalid login correctly rejected
+[2026-01-04T09:54:02.001Z] ✅ TEST PASSED: User Login
+[2026-01-04T09:54:02.001Z]   Details: {
+  "adminToken": "Generated",
+  "userToken": "Generated"
+}
+[2026-01-04T09:54:03.006Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:03.007Z] TEST 2: System Access Verification
+[2026-01-04T09:54:03.007Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:03.007Z] 
+[Step 1] Get admin system access
+[2026-01-04T09:54:03.012Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\authentication\admin-system-access-1767520443012.json
+[2026-01-04T09:54:03.012Z] ✅ Admin has access to: All systems (admin)
+[2026-01-04T09:54:03.013Z] 
+[Step 2] Get regular user system access
+[2026-01-04T09:54:03.016Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\authentication\user-system-access-1767520443015.json
+[2026-01-04T09:54:03.016Z] ✅ User has access to: 
+[2026-01-04T09:54:03.016Z] ⚠️  User has no system access assigned!
+[2026-01-04T09:54:03.016Z] ✅ TEST PASSED: System Access Verification
+[2026-01-04T09:54:03.016Z]   Details: {
+  "adminSystems": [],
+  "userSystems": []
+}
+[2026-01-04T09:54:04.020Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:04.021Z] TEST 3: Password Operations
+[2026-01-04T09:54:04.021Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:04.021Z] 
+[Step 1] Check if password change is required
+[2026-01-04T09:54:04.021Z] ℹ️  Password change status included in login response
+[2026-01-04T09:54:04.022Z] ✅ Password change status verified
+[2026-01-04T09:54:04.022Z] 
+[Step 2] Test forgot password endpoint
+[2026-01-04T09:54:04.026Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\authentication\forgot-password-1767520444024.json
+[2026-01-04T09:54:04.026Z] ⚠️  Forgot password failed (email not configured?)
+[2026-01-04T09:54:04.026Z] ✅ TEST PASSED: Password Operations
+[2026-01-04T09:54:04.026Z]   Details: {
+  "forgotPasswordStatus": 404
+}
+[2026-01-04T09:54:05.030Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:05.031Z] TEST 4: Authorization & Security
+[2026-01-04T09:54:05.031Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:05.032Z] 
+[Step 1] Test access without authentication
+[2026-01-04T09:54:05.034Z] ✅ Protected endpoint correctly requires authentication
+[2026-01-04T09:54:05.035Z] 
+[Step 2] Test access with valid token
+[2026-01-04T09:54:05.040Z] ✅ Valid token accepted
+[2026-01-04T09:54:05.040Z] 
+[Step 3] Test with invalid token
+[2026-01-04T09:54:05.042Z] ✅ Invalid token correctly rejected
+[2026-01-04T09:54:05.043Z] ✅ TEST PASSED: Authorization & Security
+[2026-01-04T09:54:05.043Z] 
+================================================================================
+[2026-01-04T09:54:05.043Z] TEST SUMMARY
+[2026-01-04T09:54:05.043Z] ================================================================================
+[2026-01-04T09:54:05.044Z] Total Tests: 4
+[2026-01-04T09:54:05.044Z] Passed: 4
+[2026-01-04T09:54:05.044Z] Failed: 0
+[2026-01-04T09:54:05.044Z] Duration: 3.30s
+[2026-01-04T09:54:05.044Z] Log file: C:\Work\shinsei-shonin\tests\logs\Authentication-1767520441740.log
+[2026-01-04T09:54:05.044Z] ================================================================================
+

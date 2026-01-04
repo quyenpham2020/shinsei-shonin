@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getAll, runQuery, saveDatabase } from '../config/database';
+import { getAll, runQuery } from '../config/database';
 
 interface UserWithAccess {
   id: number;
@@ -15,8 +15,8 @@ interface UserWithAccess {
 // Get all users with their system access
 export const getAllUsersWithAccess = async (req: Request, res: Response) => {
   try {
-    const usersWithAccess = getAll<UserWithAccess>(`
-      SELECT 
+    const usersWithAccess = await getAll<UserWithAccess>(`
+      SELECT
         u.id,
         u.employee_id,
         u.name,
@@ -24,11 +24,11 @@ export const getAllUsersWithAccess = async (req: Request, res: Response) => {
         u.department,
         t.name as team_name,
         u.role,
-        GROUP_CONCAT(usa.system_id) as systems
+        STRING_AGG(usa.system_id, ',') as systems
       FROM users u
       LEFT JOIN teams t ON u.team_id = t.id
       LEFT JOIN user_system_access usa ON u.id = usa.user_id
-      GROUP BY u.id
+      GROUP BY u.id, u.employee_id, u.name, u.email, u.department, t.name, u.role
       ORDER BY u.department, u.name
     `);
 
@@ -59,22 +59,44 @@ export const bulkUpdateAccess = async (req: Request, res: Response) => {
       const { userId, systems } = update;
 
       // Delete existing access for this user
-      runQuery(`DELETE FROM user_system_access WHERE user_id = ?`, [userId]);
+      await runQuery(`DELETE FROM user_system_access WHERE user_id = $1`, [userId]);
 
       // Insert new access rights
       for (const systemId of systems) {
-        runQuery(`
+        await runQuery(`
           INSERT INTO user_system_access (user_id, system_id)
-          VALUES (?, ?)
+          VALUES ($1, $2)
         `, [userId, systemId]);
       }
     }
-
-    saveDatabase();
 
     res.json({ message: 'System access updated successfully' });
   } catch (error) {
     console.error('Error updating system access:', error);
     res.status(500).json({ error: 'Failed to update system access' });
+  }
+};
+
+// Get current user's system access
+export const getMyAccess = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userAccess = await getAll<{ system_id: string }>(`
+      SELECT system_id
+      FROM user_system_access
+      WHERE user_id = $1
+    `, [userId]);
+
+    const systems = userAccess.map(access => access.system_id);
+
+    res.json({ systems });
+  } catch (error) {
+    console.error('Error fetching user access:', error);
+    res.status(500).json({ error: 'Failed to fetch user access' });
   }
 };

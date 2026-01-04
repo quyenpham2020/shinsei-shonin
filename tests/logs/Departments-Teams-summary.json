@@ -1,0 +1,68 @@
+{
+  "moduleName": "Departments-Teams",
+  "timestamp": "2026-01-04T10:48:23.074Z",
+  "duration": "3.91",
+  "total": 7,
+  "passed": 7,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Get All Departments",
+      "passed": true,
+      "details": {
+        "totalDepartments": 4
+      },
+      "timestamp": "2026-01-04T10:48:19.881Z"
+    },
+    {
+      "name": "Create Department",
+      "passed": true,
+      "details": {
+        "departmentId": 7,
+        "name": "Test Dept 1767523700395"
+      },
+      "timestamp": "2026-01-04T10:48:20.420Z"
+    },
+    {
+      "name": "Get All Teams",
+      "passed": true,
+      "details": {
+        "totalTeams": 9
+      },
+      "timestamp": "2026-01-04T10:48:20.962Z"
+    },
+    {
+      "name": "Create Team",
+      "passed": true,
+      "details": {
+        "teamId": 13,
+        "name": "Test Team 1767523701471"
+      },
+      "timestamp": "2026-01-04T10:48:21.485Z"
+    },
+    {
+      "name": "Update Team",
+      "passed": true,
+      "details": {
+        "teamId": 13
+      },
+      "timestamp": "2026-01-04T10:48:22.017Z"
+    },
+    {
+      "name": "Delete Team",
+      "passed": true,
+      "details": {
+        "teamId": 13
+      },
+      "timestamp": "2026-01-04T10:48:22.541Z"
+    },
+    {
+      "name": "Delete Department",
+      "passed": true,
+      "details": {
+        "departmentId": 7
+      },
+      "timestamp": "2026-01-04T10:48:23.069Z"
+    }
+  ]
+}

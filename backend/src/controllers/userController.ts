@@ -11,7 +11,7 @@ export const getUsers = async (req: AuthRequest, res: Response): Promise<void> =
 
     // Admin, BOD, and GM see all users
     if (user.role === 'admin' || user.role === 'bod' || user.role === 'gm') {
-      const users = getAll(`
+      const users = await getAll(`
         SELECT id, employee_id, name, email, department, role, weekly_report_exempt, created_at
         FROM users
         ORDER BY department ASC, name ASC
@@ -30,8 +30,8 @@ export const getUsers = async (req: AuthRequest, res: Response): Promise<void> =
         return;
       }
 
-      const placeholders = allowedUserIds.map(() => '?').join(',');
-      const users = getAll(`
+      const placeholders = allowedUserIds.map((_, i) => `$${i + 1}`).join(',');
+      const users = await getAll(`
         SELECT id, employee_id, name, email, department, role, weekly_report_exempt, created_at
         FROM users
         WHERE id IN (${placeholders})
@@ -51,9 +51,9 @@ export const getUsers = async (req: AuthRequest, res: Response): Promise<void> =
 };
 
 // 承認者一覧取得
-export const getApprovers = (req: AuthRequest, res: Response): void => {
+export const getApprovers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const approvers = getAll(`
+    const approvers = await getAll(`
       SELECT id, employee_id, name, email, department
       FROM users
       WHERE role IN ('approver', 'admin')
@@ -84,7 +84,7 @@ export const getUser = async (req: AuthRequest, res: Response): Promise<void> =>
       }
     }
 
-    const user = getOne<{
+    const user = await getOne<{
       id: number;
       employee_id: string;
       name: string;
@@ -95,7 +95,7 @@ export const getUser = async (req: AuthRequest, res: Response): Promise<void> =>
     }>(`
       SELECT id, employee_id, name, email, department, role, created_at
       FROM users
-      WHERE id = ?
+      WHERE id = $1
     `, [targetUserId]);
 
     if (!user) {
@@ -122,21 +122,21 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
     }
 
     // 有効なロールかチェック
-    const validRoles = ['user', 'approver', 'admin'];
+    const validRoles = ['user', 'approver', 'admin', 'onsite_leader', 'gm', 'bod'];
     if (!validRoles.includes(role)) {
       res.status(400).json({ message: '無効なロールです' });
       return;
     }
 
     // 社員IDの重複チェック
-    const existingByEmployeeId = getOne(`SELECT id FROM users WHERE employee_id = ?`, [employeeId]);
+    const existingByEmployeeId = await getOne(`SELECT id FROM users WHERE employee_id = $1`, [employeeId]);
     if (existingByEmployeeId) {
       res.status(400).json({ message: 'この社員IDは既に使用されています' });
       return;
     }
 
     // メールアドレスの重複チェック
-    const existingByEmail = getOne(`SELECT id FROM users WHERE email = ?`, [email]);
+    const existingByEmail = await getOne(`SELECT id FROM users WHERE email = $1`, [email]);
     if (existingByEmail) {
       res.status(400).json({ message: 'このメールアドレスは既に使用されています' });
       return;
@@ -146,12 +146,12 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ユーザー作成（初回ログイン時にパスワード変更を強制）
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO users (employee_id, name, email, password, department, role, must_change_password)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
+      VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id
     `, [employeeId, name, email, hashedPassword, department, role]);
 
-    const newUser = getOne<{
+    const newUser = await getOne<{
       id: number;
       employee_id: string;
       name: string;
@@ -162,8 +162,8 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
     }>(`
       SELECT id, employee_id, name, email, department, role, created_at
       FROM users
-      WHERE id = ?
-    `, [result.lastInsertRowid]);
+      WHERE id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newUser);
   } catch (error) {
@@ -173,20 +173,20 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 // ユーザー更新
-export const updateUser = (req: AuthRequest, res: Response): void => {
+export const updateUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { employeeId, name, email, department, role, weeklyReportExempt } = req.body;
 
     // ユーザーの存在確認
-    const existingUser = getOne<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(id)]);
+    const existingUser = await getOne<{ id: number }>(`SELECT id FROM users WHERE id = $1`, [Number(id)]);
     if (!existingUser) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
       return;
     }
 
     // 有効なロールかチェック
-    const validRoles = ['user', 'approver', 'admin'];
+    const validRoles = ['user', 'approver', 'admin', 'onsite_leader', 'gm', 'bod'];
     if (role && !validRoles.includes(role)) {
       res.status(400).json({ message: '無効なロールです' });
       return;
@@ -194,8 +194,8 @@ export const updateUser = (req: AuthRequest, res: Response): void => {
 
     // 社員IDの重複チェック（自分以外）
     if (employeeId) {
-      const existingByEmployeeId = getOne<{ id: number }>(
-        `SELECT id FROM users WHERE employee_id = ? AND id != ?`,
+      const existingByEmployeeId = await getOne<{ id: number }>(
+        `SELECT id FROM users WHERE employee_id = $1 AND id != $2`,
         [employeeId, Number(id)]
       );
       if (existingByEmployeeId) {
@@ -206,8 +206,8 @@ export const updateUser = (req: AuthRequest, res: Response): void => {
 
     // メールアドレスの重複チェック（自分以外）
     if (email) {
-      const existingByEmail = getOne<{ id: number }>(
-        `SELECT id FROM users WHERE email = ? AND id != ?`,
+      const existingByEmail = await getOne<{ id: number }>(
+        `SELECT id FROM users WHERE email = $1 AND id != $2`,
         [email, Number(id)]
       );
       if (existingByEmail) {
@@ -217,18 +217,18 @@ export const updateUser = (req: AuthRequest, res: Response): void => {
     }
 
     // ユーザー更新
-    runQuery(`
+    await runQuery(`
       UPDATE users
-      SET employee_id = COALESCE(?, employee_id),
-          name = COALESCE(?, name),
-          email = COALESCE(?, email),
-          department = COALESCE(?, department),
-          role = COALESCE(?, role),
-          weekly_report_exempt = COALESCE(?, weekly_report_exempt)
-      WHERE id = ?
-    `, [employeeId || null, name || null, email || null, department || null, role || null, weeklyReportExempt !== undefined ? (weeklyReportExempt ? 1 : 0) : null, Number(id)]);
+      SET employee_id = COALESCE($1, employee_id),
+          name = COALESCE($2, name),
+          email = COALESCE($3, email),
+          department = COALESCE($4, department),
+          role = COALESCE($5, role),
+          weekly_report_exempt = COALESCE($6, weekly_report_exempt)
+      WHERE id = $7
+    `, [employeeId || null, name || null, email || null, department || null, role || null, weeklyReportExempt !== undefined ? weeklyReportExempt : null, Number(id)]);
 
-    const updatedUser = getOne<{
+    const updatedUser = await getOne<{
       id: number;
       employee_id: string;
       name: string;
@@ -239,7 +239,7 @@ export const updateUser = (req: AuthRequest, res: Response): void => {
     }>(`
       SELECT id, employee_id, name, email, department, role, created_at
       FROM users
-      WHERE id = ?
+      WHERE id = $1
     `, [Number(id)]);
 
     res.json(updatedUser);
@@ -250,7 +250,7 @@ export const updateUser = (req: AuthRequest, res: Response): void => {
 };
 
 // ユーザー削除
-export const deleteUser = (req: AuthRequest, res: Response): void => {
+export const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -261,7 +261,7 @@ export const deleteUser = (req: AuthRequest, res: Response): void => {
     }
 
     // ユーザーの存在確認
-    const existingUser = getOne<{ id: number; role: string }>(`SELECT id, role FROM users WHERE id = ?`, [Number(id)]);
+    const existingUser = await getOne<{ id: number; role: string }>(`SELECT id, role FROM users WHERE id = $1`, [Number(id)]);
     if (!existingUser) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
       return;
@@ -274,8 +274,8 @@ export const deleteUser = (req: AuthRequest, res: Response): void => {
     }
 
     // 申請があるユーザーかチェック
-    const hasApplications = getOne<{ count: number }>(
-      `SELECT COUNT(*) as count FROM applications WHERE applicant_id = ?`,
+    const hasApplications = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM applications WHERE applicant_id = $1`,
       [Number(id)]
     );
     if (hasApplications && hasApplications.count > 0) {
@@ -284,7 +284,7 @@ export const deleteUser = (req: AuthRequest, res: Response): void => {
     }
 
     // ユーザー削除
-    runQuery(`DELETE FROM users WHERE id = ?`, [Number(id)]);
+    await runQuery(`DELETE FROM users WHERE id = $1`, [Number(id)]);
 
     res.json({ message: 'ユーザーを削除しました' });
   } catch (error) {
@@ -305,7 +305,7 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
     }
 
     // ユーザーの存在確認
-    const existingUser = getOne<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(id)]);
+    const existingUser = await getOne<{ id: number }>(`SELECT id FROM users WHERE id = $1`, [Number(id)]);
     if (!existingUser) {
       res.status(404).json({ message: 'ユーザーが見つかりません' });
       return;
@@ -315,11 +315,51 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // パスワード更新
-    runQuery(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, Number(id)]);
+    await runQuery(`UPDATE users SET password = $1 WHERE id = $2`, [hashedPassword, Number(id)]);
 
     res.json({ message: 'パスワードを変更しました' });
   } catch (error) {
     console.error('Change password error:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
+// Bulk delete users
+export const bulkDeleteUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: '削除するユーザーIDを指定してください' });
+      return;
+    }
+
+    // Check if trying to delete self
+    if (ids.includes(req.user?.id)) {
+      res.status(400).json({ message: '自分自身を削除することはできません' });
+      return;
+    }
+
+    // Check for admin users
+    const adminUsers = await getAll<{ id: number }>(`SELECT id FROM users WHERE id = ANY($1) AND role = 'admin'`, [ids]);
+    if (adminUsers.length > 0) {
+      res.status(400).json({ message: '管理者ユーザーは削除できません' });
+      return;
+    }
+
+    // Check for users with applications
+    const usersWithApps = await getAll<{ id: number }>(`SELECT DISTINCT applicant_id as id FROM applications WHERE applicant_id = ANY($1)`, [ids]);
+    if (usersWithApps.length > 0) {
+      res.status(400).json({ message: '申請があるユーザーは削除できません' });
+      return;
+    }
+
+    // Delete users
+    const result = await runQuery(`DELETE FROM users WHERE id = ANY($1)`, [ids]);
+
+    res.json({ message: `${result.rowCount}件のユーザーを削除しました` });
+  } catch (error) {
+    console.error('Bulk delete users error:', error);
     res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 };

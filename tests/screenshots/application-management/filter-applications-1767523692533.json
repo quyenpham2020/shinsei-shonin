@@ -1,0 +1,58 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": [
+    {
+      "id": 5,
+      "application_number": "APP-2026-000021",
+      "title": "Test Application 1767523690164",
+      "type": "休暇申請",
+      "description": "This is a test application for automated testing",
+      "amount": null,
+      "status": "approved",
+      "applicant_id": 18,
+      "approver_id": 11,
+      "department_id": null,
+      "preferred_date": null,
+      "created_at": "2026-01-04T10:48:10.194Z",
+      "updated_at": "2026-01-04T10:48:11.754Z",
+      "approved_at": "2026-01-04T10:48:11.754Z",
+      "rejection_reason": null,
+      "applicant_name": "quyet",
+      "applicant_department": "g7",
+      "approver_name": "admin",
+      "is_favorite": 0
+    },
+    {
+      "id": 4,
+      "application_number": "APP-2026-000011",
+      "title": "Test Application 1767523493564",
+      "type": "休暇申請",
+      "description": "This is a test application for automated testing",
+      "amount": null,
+      "status": "approved",
+      "applicant_id": 18,
+      "approver_id": 11,
+      "department_id": null,
+      "preferred_date": null,
+      "created_at": "2026-01-04T10:44:53.581Z",
+      "updated_at": "2026-01-04T10:44:55.365Z",
+      "approved_at": "2026-01-04T10:44:55.365Z",
+      "rejection_reason": null,
+      "applicant_name": "quyet",
+      "applicant_department": "g7",
+      "approver_name": "admin",
+      "is_favorite": 0
+    }
+  ],
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "1053",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:48:12 GMT",
+    "etag": "W/\"41d-sd1fydDkJVTKohYZTi6idMOzdAY\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

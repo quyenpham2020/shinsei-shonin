@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "message": "System access updated successfully"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "48",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:55:32 GMT",
+    "etag": "W/\"30-so6fq7pnnZI0d9B1U3bfqUacudA\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

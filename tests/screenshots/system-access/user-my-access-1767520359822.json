@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "systems": [
+      "shinsei-shonin",
+      "weekly-report"
+    ]
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "46",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:52:39 GMT",
+    "etag": "W/\"2e-ehlxNIO4KeW/1gJdiNWPRta8ZyU\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

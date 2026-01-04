@@ -1,0 +1,32 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "message": "レポートを更新しました",
+    "report": {
+      "id": 2,
+      "user_id": 18,
+      "week_start_date": "2025-01-05T15:00:00.000Z",
+      "week_end_date": "2025-01-11T15:00:00.000Z",
+      "content": "Test weekly report - Completed testing framework and created comprehensive test scripts for all modules",
+      "achievements": "Completed testing framework, Created test scripts",
+      "challenges": "None",
+      "next_week_plan": "Continue with more tests",
+      "overview": null,
+      "status": "draft",
+      "submitted_at": null,
+      "created_at": "2026-01-04T10:44:58.039Z",
+      "updated_at": "2026-01-04T10:48:15.134Z"
+    }
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "546",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:48:15 GMT",
+    "etag": "W/\"222-VSo66LekasVDB/gMOc1OLK/Q2OA\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}
