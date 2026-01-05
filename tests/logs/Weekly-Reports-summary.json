@@ -1,0 +1,26 @@
+{
+  "moduleName": "Weekly-Reports",
+  "timestamp": "2026-01-04T10:48:17.736Z",
+  "duration": "3.59",
+  "total": 2,
+  "passed": 2,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Create Weekly Report",
+      "passed": true,
+      "details": {
+        "reportId": null
+      },
+      "timestamp": "2026-01-04T10:48:15.141Z"
+    },
+    {
+      "name": "Get Weekly Reports",
+      "passed": true,
+      "details": {
+        "totalReports": 1
+      },
+      "timestamp": "2026-01-04T10:48:15.689Z"
+    }
+  ]
+}

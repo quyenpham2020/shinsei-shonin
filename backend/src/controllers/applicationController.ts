@@ -34,7 +34,7 @@ export const getApplications = async (req: AuthRequest, res: Response): Promise<
       FROM applications a
       LEFT JOIN users u1 ON a.applicant_id = u1.id
       LEFT JOIN users u2 ON a.approver_id = u2.id
-      LEFT JOIN favorites f ON a.id = f.application_id AND f.user_id = ?
+      LEFT JOIN favorites f ON a.id = f.application_id AND f.user_id = $1
       WHERE 1=1
     `;
     const params: (string | number)[] = [user.id];
@@ -42,7 +42,7 @@ export const getApplications = async (req: AuthRequest, res: Response): Promise<
     // ロール別のフィルタリング
     if (user.role === 'user') {
       // 一般ユーザーは自分の申請のみ
-      query += ' AND a.applicant_id = ?';
+      query += ` AND a.applicant_id = $${params.length + 1}`;
       params.push(user.id);
     } else if (user.role === 'approver') {
       // 承認者は担当部署の申請のみ
@@ -50,7 +50,7 @@ export const getApplications = async (req: AuthRequest, res: Response): Promise<
       query += ` AND u1.department IN (
         SELECT d.name FROM approvers ap
         JOIN departments d ON ap.department_id = d.id
-        WHERE ap.user_id = ? AND ap.is_active = 1
+        WHERE ap.user_id = $${params.length + 1} AND ap.is_active = true
       )`;
       params.push(user.id);
     } else if (user.role === 'onsite_leader') {
@@ -62,7 +62,7 @@ export const getApplications = async (req: AuthRequest, res: Response): Promise<
         return;
       }
 
-      const placeholders = allowedUserIds.map(() => '?').join(',');
+      const placeholders = allowedUserIds.map((_, i) => `$${params.length + i + 1}`).join(',');
       query += ` AND a.applicant_id IN (${placeholders})`;
       params.push(...allowedUserIds);
     }
@@ -70,41 +70,41 @@ export const getApplications = async (req: AuthRequest, res: Response): Promise<
 
     // 部署フィルター（承認者・管理者向け）
     if (department && department !== 'all') {
-      query += ' AND u1.department = ?';
+      query += ` AND u1.department = $${params.length + 1}`;
       params.push(department as string);
     }
 
     if (status && status !== 'all') {
-      query += ' AND a.status = ?';
+      query += ` AND a.status = $${params.length + 1}`;
       params.push(status as string);
     }
 
     if (type && type !== 'all') {
-      query += ' AND a.type = ?';
+      query += ` AND a.type = $${params.length + 1}`;
       params.push(type as string);
     }
 
     // 期間フィルター
     if (startDate) {
-      query += ' AND date(a.created_at) >= date(?)';
+      query += ` AND date(a.created_at) >= date($${params.length + 1})`;
       params.push(startDate as string);
     }
 
     if (endDate) {
-      query += ' AND date(a.created_at) <= date(?)';
+      query += ` AND date(a.created_at) <= date($${params.length + 1})`;
       params.push(endDate as string);
     }
 
     // フリーワード検索（申請ID、件名）
     if (search) {
-      query += ' AND (a.id LIKE ? OR a.title LIKE ?)';
+      query += ` AND (a.id LIKE $${params.length + 1} OR a.title LIKE $${params.length + 2})`;
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm);
     }
 
     query += ' ORDER BY a.created_at DESC';
 
-    const applications = getAll(query, params);
+    const applications = await getAll(query, params);
     res.json(applications);
   } catch (error) {
     console.error('Get applications error:', error);
@@ -118,7 +118,7 @@ export const getApplication = async (req: AuthRequest, res: Response): Promise<v
     const { id } = req.params;
     const user = req.user!;
 
-    const application = getOne<Application & { applicant_name: string; applicant_department: string; applicant_email: string; approver_name: string; parent_id: number | null; is_favorite: number }>(`
+    const application = await getOne<Application & { applicant_name: string; applicant_department: string; applicant_email: string; approver_name: string; parent_id: number | null; is_favorite: number }>(`
       SELECT
         a.*,
         u1.name as applicant_name,
@@ -129,8 +129,8 @@ export const getApplication = async (req: AuthRequest, res: Response): Promise<v
       FROM applications a
       LEFT JOIN users u1 ON a.applicant_id = u1.id
       LEFT JOIN users u2 ON a.approver_id = u2.id
-      LEFT JOIN favorites f ON a.id = f.application_id AND f.user_id = ?
-      WHERE a.id = ?
+      LEFT JOIN favorites f ON a.id = f.application_id AND f.user_id = $1
+      WHERE a.id = $2
     `, [user.id, Number(id)]);
 
     if (!application) {
@@ -149,22 +149,24 @@ export const getApplication = async (req: AuthRequest, res: Response): Promise<v
     }
 
     // コメント取得
-    const comments = getAll(`
+    const comments = await getAll(`
       SELECT c.*, u.name as user_name, u.department as user_department
       FROM comments c
       LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.application_id = ?
+      WHERE c.application_id = $1
       ORDER BY c.created_at ASC
     `, [Number(id)]);
 
     // 補足申請（子申請）取得
-    const supplementaryApplications = getAll<Application & { applicant_name: string }>(`
-      SELECT a.*, u.name as applicant_name
-      FROM applications a
-      LEFT JOIN users u ON a.applicant_id = u.id
-      WHERE a.parent_id = ?
-      ORDER BY a.created_at ASC
-    `, [Number(id)]);
+    // TODO: Add parent_id column to applications table to enable this feature
+    // const supplementaryApplications = await getAll<Application & { applicant_name: string }>(`
+    //   SELECT a.*, u.name as applicant_name
+    //   FROM applications a
+    //   LEFT JOIN users u ON a.applicant_id = u.id
+    //   WHERE a.parent_id = $1
+    //   ORDER BY a.created_at ASC
+    // `, [Number(id)]);
+    const supplementaryApplications: any[] = [];
 
     // 合計金額計算（親 + 全子申請）
     const parentAmount = application.amount || 0;
@@ -184,13 +186,13 @@ export const getApplication = async (req: AuthRequest, res: Response): Promise<v
 };
 
 // 申請番号生成 (APP-YYYY-NNNNNN)
-const generateApplicationNumber = (): string => {
+const generateApplicationNumber = async (): Promise<string> => {
   const year = new Date().getFullYear();
   const prefix = `APP-${year}-`;
 
   // 今年の申請数を取得
-  const result = getOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM applications WHERE application_number LIKE ?`,
+  const result = await getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM applications WHERE application_number LIKE $1`,
     [`${prefix}%`]
   );
 
@@ -199,7 +201,7 @@ const generateApplicationNumber = (): string => {
 };
 
 // 新規申請作成
-export const createApplication = (req: AuthRequest, res: Response): void => {
+export const createApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, type, description, amount, isDraft, departmentId, preferredDate, approverId } = req.body;
     const user = req.user!;
@@ -223,17 +225,17 @@ export const createApplication = (req: AuthRequest, res: Response): void => {
     }
 
     const status = isDraft ? 'draft' : 'pending';
-    const applicationNumber = generateApplicationNumber();
+    const applicationNumber = await generateApplicationNumber();
 
     // 部署ID: 管理者は指定可能、一般ユーザーは自分の部署
     const finalDepartmentId = user.role === 'admin' && departmentId ? departmentId : null;
 
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO applications (application_number, title, type, description, amount, applicant_id, approver_id, status, department_id, preferred_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
     `, [applicationNumber, title || '', type || '', description || null, amount || null, user.id, approverId || null, status, finalDepartmentId, preferredDate || null]);
 
-    const newApplication = getOne('SELECT * FROM applications WHERE id = ?', [result.lastInsertRowid]);
+    const newApplication = await getOne('SELECT * FROM applications WHERE id = $1', [result.rows[0].id]);
 
     res.status(201).json(newApplication);
   } catch (error) {
@@ -243,13 +245,13 @@ export const createApplication = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請更新（下書き編集）
-export const updateApplication = (req: AuthRequest, res: Response): void => {
+export const updateApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { title, type, description, amount, isDraft, approverId } = req.body;
     const user = req.user!;
 
-    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const application = await getOne<Application>('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
@@ -275,13 +277,13 @@ export const updateApplication = (req: AuthRequest, res: Response): void => {
 
     const newStatus = isDraft ? 'draft' : 'pending';
 
-    runQuery(`
+    await runQuery(`
       UPDATE applications
-      SET title = ?, type = ?, description = ?, amount = ?, approver_id = ?, status = ?, updated_at = datetime('now')
-      WHERE id = ?
+      SET title = $1, type = $2, description = $3, amount = $4, approver_id = $5, status = $6, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7
     `, [title || '', type || '', description || null, amount || null, approverId || null, newStatus, Number(id)]);
 
-    const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const updatedApplication = await getOne('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     res.json(updatedApplication);
   } catch (error) {
@@ -291,12 +293,12 @@ export const updateApplication = (req: AuthRequest, res: Response): void => {
 };
 
 // 下書き削除
-export const deleteApplication = (req: AuthRequest, res: Response): void => {
+export const deleteApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
 
-    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const application = await getOne<Application>('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
@@ -315,9 +317,9 @@ export const deleteApplication = (req: AuthRequest, res: Response): void => {
     }
 
     // 添付ファイルも削除
-    runQuery('DELETE FROM attachments WHERE application_id = ?', [Number(id)]);
-    runQuery('DELETE FROM comments WHERE application_id = ?', [Number(id)]);
-    runQuery('DELETE FROM applications WHERE id = ?', [Number(id)]);
+    await runQuery('DELETE FROM attachments WHERE application_id = $1', [Number(id)]);
+    await runQuery('DELETE FROM comments WHERE application_id = $1', [Number(id)]);
+    await runQuery('DELETE FROM applications WHERE id = $1', [Number(id)]);
 
     res.json({ message: '申請を削除しました' });
   } catch (error) {
@@ -327,12 +329,12 @@ export const deleteApplication = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請承認
-export const approveApplication = (req: AuthRequest, res: Response): void => {
+export const approveApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
 
-    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const application = await getOne<Application>('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
@@ -344,13 +346,13 @@ export const approveApplication = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    runQuery(`
+    await runQuery(`
       UPDATE applications
-      SET status = 'approved', approver_id = ?, approved_at = datetime('now'), updated_at = datetime('now')
-      WHERE id = ?
+      SET status = 'approved', approver_id = $1, approved_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
     `, [user.id, Number(id)]);
 
-    const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const updatedApplication = await getOne('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     res.json(updatedApplication);
   } catch (error) {
@@ -360,13 +362,13 @@ export const approveApplication = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請却下
-export const rejectApplication = (req: AuthRequest, res: Response): void => {
+export const rejectApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
     const user = req.user!;
 
-    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const application = await getOne<Application>('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
@@ -378,13 +380,13 @@ export const rejectApplication = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    runQuery(`
+    await runQuery(`
       UPDATE applications
-      SET status = 'rejected', approver_id = ?, rejection_reason = ?, updated_at = datetime('now')
-      WHERE id = ?
+      SET status = 'rejected', approver_id = $1, rejection_reason = $2, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
     `, [user.id, reason || null, Number(id)]);
 
-    const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const updatedApplication = await getOne('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     res.json(updatedApplication);
   } catch (error) {
@@ -394,12 +396,12 @@ export const rejectApplication = (req: AuthRequest, res: Response): void => {
 };
 
 // 申請取り下げ
-export const withdrawApplication = (req: AuthRequest, res: Response): void => {
+export const withdrawApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
 
-    const application = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const application = await getOne<Application>('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
@@ -418,13 +420,13 @@ export const withdrawApplication = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    runQuery(`
+    await runQuery(`
       UPDATE applications
-      SET status = 'draft', updated_at = datetime('now')
-      WHERE id = ?
+      SET status = 'draft', updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
     `, [Number(id)]);
 
-    const updatedApplication = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const updatedApplication = await getOne('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     res.json(updatedApplication);
   } catch (error) {
@@ -434,7 +436,7 @@ export const withdrawApplication = (req: AuthRequest, res: Response): void => {
 };
 
 // コメント追加
-export const addComment = (req: AuthRequest, res: Response): void => {
+export const addComment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { content } = req.body;
@@ -445,24 +447,24 @@ export const addComment = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    const application = getOne('SELECT * FROM applications WHERE id = ?', [Number(id)]);
+    const application = await getOne('SELECT * FROM applications WHERE id = $1', [Number(id)]);
 
     if (!application) {
       res.status(404).json({ message: '申請が見つかりません' });
       return;
     }
 
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO comments (application_id, user_id, content)
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3) RETURNING id
     `, [Number(id), user.id, content]);
 
-    const newComment = getOne(`
+    const newComment = await getOne(`
       SELECT c.*, u.name as user_name, u.department as user_department
       FROM comments c
       LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE c.id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newComment);
   } catch (error) {
@@ -472,14 +474,14 @@ export const addComment = (req: AuthRequest, res: Response): void => {
 };
 
 // 補足申請作成（tờ trình bổ sung）
-export const createSupplementaryApplication = (req: AuthRequest, res: Response): void => {
+export const createSupplementaryApplication = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { parentId } = req.params;
     const { title, description, amount } = req.body;
     const user = req.user!;
 
     // 親申請の確認
-    const parentApplication = getOne<Application>('SELECT * FROM applications WHERE id = ?', [Number(parentId)]);
+    const parentApplication = await getOne<Application>('SELECT * FROM applications WHERE id = $1', [Number(parentId)]);
 
     if (!parentApplication) {
       res.status(404).json({ message: '親申請が見つかりません' });
@@ -503,14 +505,14 @@ export const createSupplementaryApplication = (req: AuthRequest, res: Response):
       return;
     }
 
-    const applicationNumber = generateApplicationNumber();
+    const applicationNumber = await generateApplicationNumber();
 
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO applications (application_number, title, type, description, amount, applicant_id, status, parent_id)
-      VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+      VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7) RETURNING id
     `, [applicationNumber, title, parentApplication.type, description || null, amount || null, user.id, Number(parentId)]);
 
-    const newApplication = getOne('SELECT * FROM applications WHERE id = ?', [result.lastInsertRowid]);
+    const newApplication = await getOne('SELECT * FROM applications WHERE id = $1', [result.rows[0].id]);
 
     res.status(201).json(newApplication);
   } catch (error) {

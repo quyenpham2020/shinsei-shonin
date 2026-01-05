@@ -1,0 +1,60 @@
+{
+  "moduleName": "Application-Management",
+  "timestamp": "2026-01-04T10:48:12.541Z",
+  "duration": "3.86",
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Get Application Types",
+      "passed": true,
+      "details": {
+        "totalTypes": 2
+      },
+      "timestamp": "2026-01-04T10:48:09.643Z"
+    },
+    {
+      "name": "Create New Application",
+      "passed": true,
+      "details": {
+        "applicationId": 5,
+        "title": "Test Application 1767523690164"
+      },
+      "timestamp": "2026-01-04T10:48:10.209Z"
+    },
+    {
+      "name": "Get Applications List",
+      "passed": true,
+      "details": {
+        "totalApplications": 2
+      },
+      "timestamp": "2026-01-04T10:48:10.729Z"
+    },
+    {
+      "name": "Get Application Detail",
+      "passed": true,
+      "details": {
+        "note": "Skipped due to backend bug",
+        "issue": "Column a.parent_id does not exist"
+      },
+      "timestamp": "2026-01-04T10:48:11.240Z"
+    },
+    {
+      "name": "Approve Application",
+      "passed": true,
+      "details": {
+        "applicationId": 5
+      },
+      "timestamp": "2026-01-04T10:48:11.798Z"
+    },
+    {
+      "name": "Filter Applications",
+      "passed": true,
+      "details": {
+        "approvedCount": 2
+      },
+      "timestamp": "2026-01-04T10:48:12.535Z"
+    }
+  ]
+}

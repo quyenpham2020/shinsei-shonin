@@ -22,11 +22,17 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import weeklyReportService, {
@@ -61,6 +67,7 @@ const WeeklyReportPage: React.FC = () => {
   const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [generatingOverview, setGeneratingOverview] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPreFilled, setIsPreFilled] = useState(false);
@@ -70,6 +77,7 @@ const WeeklyReportPage: React.FC = () => {
   const [achievements, setAchievements] = useState('');
   const [challenges, setChallenges] = useState('');
   const [nextWeekPlan, setNextWeekPlan] = useState('');
+  const [overview, setOverview] = useState('');
 
   // Comparison data
   const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);
@@ -83,7 +91,15 @@ const WeeklyReportPage: React.FC = () => {
   const [memberDetailLoading, setMemberDetailLoading] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
+  // Export filters
+  const [exportDepartment, setExportDepartment] = useState('');
+  const [exportTeam, setExportTeam] = useState('');
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [exporting, setExporting] = useState(false);
+
   const isLeader = user?.role === 'approver' || user?.role === 'admin';
+  const canExport = ['onsite_leader', 'gm', 'bod', 'admin'].includes(user?.role || '');
 
   useEffect(() => {
     loadComparisonData();
@@ -103,6 +119,7 @@ const WeeklyReportPage: React.FC = () => {
         setAchievements(data.currentWeek.report.achievements || '');
         setChallenges(data.currentWeek.report.challenges || '');
         setNextWeekPlan(data.currentWeek.report.next_week_plan || '');
+        setOverview(data.currentWeek.report.overview || '');
         setIsPreFilled(false);
       }
       // If no current week report but previous week has, pre-fill with previous week data
@@ -111,6 +128,7 @@ const WeeklyReportPage: React.FC = () => {
         setAchievements(data.previousWeek.report.achievements || '');
         setChallenges(data.previousWeek.report.challenges || '');
         setNextWeekPlan(data.previousWeek.report.next_week_plan || '');
+        setOverview(''); // Don't prefill overview from previous week
         setIsPreFilled(true);
       }
     } catch (error) {
@@ -148,6 +166,59 @@ const WeeklyReportPage: React.FC = () => {
     setMemberDetailData(null);
   };
 
+  const handleGenerateOverview = async () => {
+    if (!content.trim()) {
+      setErrorMessage('報告内容を入力してから、Overviewを生成してください');
+      return;
+    }
+
+    setGeneratingOverview(true);
+    try {
+      const data = await weeklyReportService.generateOverview({
+        content,
+        achievements: achievements || undefined,
+        challenges: challenges || undefined,
+        nextWeekPlan: nextWeekPlan || undefined,
+      });
+      setOverview(data.overview);
+      setSuccessMessage('Overviewを生成しました。内容を確認・編集してください。');
+    } catch (error) {
+      console.error('Failed to generate overview:', error);
+      setErrorMessage('Overview生成に失敗しました');
+    } finally {
+      setGeneratingOverview(false);
+    }
+  };
+
+  const handleExportToExcel = async () => {
+    setExporting(true);
+    try {
+      const blob = await weeklyReportService.exportToExcel({
+        department: exportDepartment || undefined,
+        team: exportTeam || undefined,
+        startDate: exportStartDate || undefined,
+        endDate: exportEndDate || undefined,
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `weekly_reports_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setSuccessMessage('Excelファイルをダウンロードしました');
+    } catch (error) {
+      console.error('Failed to export to Excel:', error);
+      setErrorMessage('Excel出力に失敗しました');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) {
@@ -162,6 +233,7 @@ const WeeklyReportPage: React.FC = () => {
         achievements: achievements || undefined,
         challenges: challenges || undefined,
         nextWeekPlan: nextWeekPlan || undefined,
+        overview: overview || undefined,
       });
       setSuccessMessage('週次報告を保存しました');
       setIsPreFilled(false);
@@ -231,9 +303,6 @@ const WeeklyReportPage: React.FC = () => {
           <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
             週次報告の提出をお願いします
           </Typography>
-          <Typography variant="body1" sx={{ fontSize: '18px', fontWeight: 600, color: '#d32f2f' }}>
-            Hãy gửi báo cáo tuần ở chỗ dễ nhìn trên web
-          </Typography>
           <Typography variant="body2" sx={{ mt: 1 }}>
             {comparisonData.currentWeek.weekStart} 週の報告がまだ提出されていません。下記のフォームから報告を入力してください。
           </Typography>
@@ -294,6 +363,37 @@ const WeeklyReportPage: React.FC = () => {
               margin="normal"
               placeholder="来週予定している業務を記載してください"
             />
+
+            {/* Overview Section */}
+            <Box sx={{ mt: 3, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Overview（部署共有用の簡潔な報告）
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                上記の詳細報告からAIが自動的に簡潔なoverviewを生成します。生成後に内容を編集できます。
+              </Typography>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleGenerateOverview}
+                disabled={generatingOverview || !content.trim()}
+                startIcon={generatingOverview && <CircularProgress size={20} />}
+                sx={{ mb: 2 }}
+              >
+                {generatingOverview ? 'Overview生成中...' : 'Overviewを生成'}
+              </Button>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                label="Overview"
+                value={overview}
+                onChange={(e) => setOverview(e.target.value)}
+                placeholder="「Overviewを生成」ボタンをクリックするとAIが自動生成します"
+                helperText="生成後に内容を確認・編集してから報告を保存してください"
+              />
+            </Box>
+
             <Box sx={{ mt: 2 }}>
               <Button
                 type="submit"
@@ -377,6 +477,75 @@ const WeeklyReportPage: React.FC = () => {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   メンバー週次報告一覧（直近3週間）
                 </Typography>
+
+                {/* Export Section */}
+                {canExport && (
+                  <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
+                      Excel出力
+                    </Typography>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={6} md={3}>
+                        <TextField
+                          fullWidth
+                          label="部署"
+                          size="small"
+                          value={exportDepartment}
+                          onChange={(e) => setExportDepartment(e.target.value)}
+                          placeholder="全て"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <TextField
+                          fullWidth
+                          label="チーム"
+                          size="small"
+                          value={exportTeam}
+                          onChange={(e) => setExportTeam(e.target.value)}
+                          placeholder="全て"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="開始日"
+                          type="date"
+                          size="small"
+                          value={exportStartDate}
+                          onChange={(e) => setExportStartDate(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="終了日"
+                          type="date"
+                          size="small"
+                          value={exportEndDate}
+                          onChange={(e) => setExportEndDate(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={12} md={2}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="primary"
+                          startIcon={exporting ? <CircularProgress size={20} /> : <FileDownloadIcon />}
+                          onClick={handleExportToExcel}
+                          disabled={exporting}
+                        >
+                          {exporting ? '出力中...' : 'Excel出力'}
+                        </Button>
+                      </Grid>
+                    </Grid>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      ※ フィルターを指定しない場合、全てのデータが出力されます
+                    </Typography>
+                  </Paper>
+                )}
+
                 <TableContainer component={Paper} sx={{ mb: 2 }}>
                   <Table size="small">
                     <TableHead>

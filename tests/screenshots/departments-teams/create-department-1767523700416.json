@@ -1,0 +1,21 @@
+{
+  "status": 201,
+  "ok": true,
+  "data": {
+    "id": 7,
+    "code": "TEST1767523700395",
+    "name": "Test Dept 1767523700395",
+    "description": "Test department for automated testing",
+    "created_at": "2026-01-04T10:48:20.410Z"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "162",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:48:20 GMT",
+    "etag": "W/\"a2-hCTKKMtZHy+SvykQqtRfRWyNMUs\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

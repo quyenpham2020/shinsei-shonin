@@ -52,7 +52,7 @@ interface Attachment {
 }
 
 // 添付ファイルアップロード
-export const uploadAttachment = (req: AuthRequest, res: Response): void => {
+export const uploadAttachment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { applicationId } = req.params;
     const user = req.user!;
@@ -64,7 +64,7 @@ export const uploadAttachment = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if application exists
-    const application = getOne('SELECT * FROM applications WHERE id = ?', [Number(applicationId)]);
+    const application = await getOne('SELECT * FROM applications WHERE id = $1', [Number(applicationId)]);
     if (!application) {
       // Clean up uploaded file
       fs.unlinkSync(file.path);
@@ -80,12 +80,12 @@ export const uploadAttachment = (req: AuthRequest, res: Response): void => {
     // Move file to uploads directory
     fs.renameSync(file.path, storedPath);
 
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO attachments (application_id, original_name, stored_name, mime_type, size, uploaded_by)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
     `, [Number(applicationId), originalName, storedName, file.mimetype, file.size, user.id]);
 
-    const attachment = getOne<Attachment>('SELECT * FROM attachments WHERE id = ?', [result.lastInsertRowid]);
+    const attachment = await getOne<Attachment>('SELECT * FROM attachments WHERE id = $1', [result.rows[0].id]);
 
     res.status(201).json(attachment);
   } catch (error) {
@@ -95,15 +95,15 @@ export const uploadAttachment = (req: AuthRequest, res: Response): void => {
 };
 
 // 添付ファイル一覧取得
-export const getAttachments = (req: AuthRequest, res: Response): void => {
+export const getAttachments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { applicationId } = req.params;
 
-    const attachments = getAll<Attachment>(`
+    const attachments = await getAll<Attachment>(`
       SELECT a.*, u.name as uploader_name
       FROM attachments a
       LEFT JOIN users u ON a.uploaded_by = u.id
-      WHERE a.application_id = ?
+      WHERE a.application_id = $1
       ORDER BY a.created_at ASC
     `, [Number(applicationId)]);
 
@@ -115,11 +115,11 @@ export const getAttachments = (req: AuthRequest, res: Response): void => {
 };
 
 // 添付ファイルダウンロード
-export const downloadAttachment = (req: AuthRequest, res: Response): void => {
+export const downloadAttachment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const attachment = getOne<Attachment>('SELECT * FROM attachments WHERE id = ?', [Number(id)]);
+    const attachment = await getOne<Attachment>('SELECT * FROM attachments WHERE id = $1', [Number(id)]);
 
     if (!attachment) {
       res.status(404).json({ message: '添付ファイルが見つかりません' });
@@ -143,12 +143,12 @@ export const downloadAttachment = (req: AuthRequest, res: Response): void => {
 };
 
 // 添付ファイル削除
-export const deleteAttachment = (req: AuthRequest, res: Response): void => {
+export const deleteAttachment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
 
-    const attachment = getOne<Attachment>('SELECT * FROM attachments WHERE id = ?', [Number(id)]);
+    const attachment = await getOne<Attachment>('SELECT * FROM attachments WHERE id = $1', [Number(id)]);
 
     if (!attachment) {
       res.status(404).json({ message: '添付ファイルが見つかりません' });
@@ -168,7 +168,7 @@ export const deleteAttachment = (req: AuthRequest, res: Response): void => {
     }
 
     // Delete from database
-    runQuery('DELETE FROM attachments WHERE id = ?', [Number(id)]);
+    await runQuery('DELETE FROM attachments WHERE id = $1', [Number(id)]);
 
     res.json({ message: '添付ファイルを削除しました' });
   } catch (error) {

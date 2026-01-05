@@ -1,0 +1,17 @@
+{
+  "status": 400,
+  "ok": false,
+  "data": {
+    "message": "カテゴリ、件名、内容は必須です"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "59",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:52:45 GMT",
+    "etag": "W/\"3b-dX6hLzLTFXqAoI+KS8PojFsQtg8\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

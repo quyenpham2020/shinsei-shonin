@@ -123,6 +123,8 @@
     "changeLanguage": "Change Language"
   },
   "backToPortal": "Back to Portal",
+  "changePassword": "Change Password",
+  "logout": "Logout",
   "system": "System",
   "page": "Page",
   "applicationEdit": "Edit Application",

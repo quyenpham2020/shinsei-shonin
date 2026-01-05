@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImVtcGxveWVlSWQiOiJhZG1pbiIsIm5hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW4iLCJkZXBhcnRtZW50IjoiZzciLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3Njc1MjAzMzQsImV4cCI6MTc2NzYwNjczNH0.D1iYzlVI-lHw2l5trEL_ssWj9XJlxRArad4O4rnmlOU",
+    "user": {
+      "id": 11,
+      "employeeId": "admin",
+      "name": "admin",
+      "email": "admin",
+      "department": "g7",
+      "role": "admin",
+      "mustChangePassword": false
+    }
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "393",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:52:14 GMT",
+    "etag": "W/\"189-0+H82CwjgdbUbJ7AsQ7bqGibD7s\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

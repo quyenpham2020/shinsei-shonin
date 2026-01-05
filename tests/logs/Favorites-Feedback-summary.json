@@ -1,0 +1,57 @@
+{
+  "moduleName": "Favorites-Feedback",
+  "timestamp": "2026-01-04T10:48:32.076Z",
+  "duration": "3.63",
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Get Favorites",
+      "passed": true,
+      "details": {
+        "totalFavorites": 0
+      },
+      "timestamp": "2026-01-04T10:48:29.444Z"
+    },
+    {
+      "name": "Get Page Favorites",
+      "passed": true,
+      "details": {
+        "totalPageFavorites": 4
+      },
+      "timestamp": "2026-01-04T10:48:29.967Z"
+    },
+    {
+      "name": "Create Page Favorite",
+      "passed": true,
+      "details": null,
+      "timestamp": "2026-01-04T10:48:30.495Z"
+    },
+    {
+      "name": "Submit Feedback",
+      "passed": true,
+      "details": {
+        "feedbackId": 7
+      },
+      "timestamp": "2026-01-04T10:48:31.027Z"
+    },
+    {
+      "name": "Get All Feedback",
+      "passed": true,
+      "details": {
+        "totalFeedback": 7
+      },
+      "timestamp": "2026-01-04T10:48:31.544Z"
+    },
+    {
+      "name": "Update Feedback Status",
+      "passed": true,
+      "details": {
+        "feedbackId": 7,
+        "newStatus": "in_progress"
+      },
+      "timestamp": "2026-01-04T10:48:32.069Z"
+    }
+  ]
+}

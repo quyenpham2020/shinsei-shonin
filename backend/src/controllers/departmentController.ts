@@ -12,22 +12,22 @@ interface Department {
 }
 
 // 部署一覧取得
-export const getDepartments = (req: AuthRequest, res: Response): void => {
+export const getDepartments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { activeOnly } = req.query;
 
     let query = `
-      SELECT id, code, name, description, COALESCE(is_active, 1) as is_active, created_at
+      SELECT id, code, name, description, COALESCE(is_active, true) as is_active, created_at
       FROM departments
     `;
 
     if (activeOnly === 'true') {
-      query += ' WHERE COALESCE(is_active, 1) = 1';
+      query += ' WHERE COALESCE(is_active, true) = true';
     }
 
     query += ' ORDER BY code ASC';
 
-    const departments = getAll<Department>(query);
+    const departments = await getAll<Department>(query);
 
     res.json(departments);
   } catch (error) {
@@ -37,13 +37,13 @@ export const getDepartments = (req: AuthRequest, res: Response): void => {
 };
 
 // 部署取得（単一）
-export const getDepartment = (req: AuthRequest, res: Response): void => {
+export const getDepartment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const department = getOne<Department>(`
+    const department = await getOne<Department>(`
       SELECT id, code, name, description, created_at
       FROM departments
-      WHERE id = ?
+      WHERE id = $1
     `, [Number(id)]);
 
     if (!department) {
@@ -59,7 +59,7 @@ export const getDepartment = (req: AuthRequest, res: Response): void => {
 };
 
 // 部署作成
-export const createDepartment = (req: AuthRequest, res: Response): void => {
+export const createDepartment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { code, name, description } = req.body;
 
@@ -70,23 +70,23 @@ export const createDepartment = (req: AuthRequest, res: Response): void => {
     }
 
     // 部署コードの重複チェック
-    const existingByCode = getOne(`SELECT id FROM departments WHERE code = ?`, [code]);
+    const existingByCode = await getOne(`SELECT id FROM departments WHERE code = $1`, [code]);
     if (existingByCode) {
       res.status(400).json({ message: 'この部署コードは既に使用されています' });
       return;
     }
 
     // 部署作成
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO departments (code, name, description)
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3) RETURNING id
     `, [code, name, description || null]);
 
-    const newDepartment = getOne<Department>(`
+    const newDepartment = await getOne<Department>(`
       SELECT id, code, name, description, created_at
       FROM departments
-      WHERE id = ?
-    `, [result.lastInsertRowid]);
+      WHERE id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newDepartment);
   } catch (error) {
@@ -96,13 +96,13 @@ export const createDepartment = (req: AuthRequest, res: Response): void => {
 };
 
 // 部署更新
-export const updateDepartment = (req: AuthRequest, res: Response): void => {
+export const updateDepartment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { code, name, description } = req.body;
 
     // 部署の存在確認
-    const existingDepartment = getOne<{ id: number }>(`SELECT id FROM departments WHERE id = ?`, [Number(id)]);
+    const existingDepartment = await getOne<{ id: number }>(`SELECT id FROM departments WHERE id = $1`, [Number(id)]);
     if (!existingDepartment) {
       res.status(404).json({ message: '部署が見つかりません' });
       return;
@@ -110,8 +110,8 @@ export const updateDepartment = (req: AuthRequest, res: Response): void => {
 
     // 部署コードの重複チェック（自分以外）
     if (code) {
-      const existingByCode = getOne<{ id: number }>(
-        `SELECT id FROM departments WHERE code = ? AND id != ?`,
+      const existingByCode = await getOne<{ id: number }>(
+        `SELECT id FROM departments WHERE code = $1 AND id != $2`,
         [code, Number(id)]
       );
       if (existingByCode) {
@@ -121,18 +121,18 @@ export const updateDepartment = (req: AuthRequest, res: Response): void => {
     }
 
     // 部署更新
-    runQuery(`
+    await runQuery(`
       UPDATE departments
-      SET code = COALESCE(?, code),
-          name = COALESCE(?, name),
-          description = COALESCE(?, description)
-      WHERE id = ?
+      SET code = COALESCE($1, code),
+          name = COALESCE($2, name),
+          description = COALESCE($3, description)
+      WHERE id = $4
     `, [code || null, name || null, description !== undefined ? description : null, Number(id)]);
 
-    const updatedDepartment = getOne<Department>(`
+    const updatedDepartment = await getOne<Department>(`
       SELECT id, code, name, description, created_at
       FROM departments
-      WHERE id = ?
+      WHERE id = $1
     `, [Number(id)]);
 
     res.json(updatedDepartment);
@@ -143,20 +143,20 @@ export const updateDepartment = (req: AuthRequest, res: Response): void => {
 };
 
 // 部署削除
-export const deleteDepartment = (req: AuthRequest, res: Response): void => {
+export const deleteDepartment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
     // 部署の存在確認
-    const existingDepartment = getOne<{ id: number; name: string }>(`SELECT id, name FROM departments WHERE id = ?`, [Number(id)]);
+    const existingDepartment = await getOne<{ id: number; name: string }>(`SELECT id, name FROM departments WHERE id = $1`, [Number(id)]);
     if (!existingDepartment) {
       res.status(404).json({ message: '部署が見つかりません' });
       return;
     }
 
     // この部署に所属するユーザーがいるかチェック
-    const hasUsers = getOne<{ count: number }>(
-      `SELECT COUNT(*) as count FROM users WHERE department = ?`,
+    const hasUsers = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM users WHERE department = $1`,
       [existingDepartment.name]
     );
     if (hasUsers && hasUsers.count > 0) {
@@ -165,7 +165,7 @@ export const deleteDepartment = (req: AuthRequest, res: Response): void => {
     }
 
     // 部署削除
-    runQuery(`DELETE FROM departments WHERE id = ?`, [Number(id)]);
+    await runQuery(`DELETE FROM departments WHERE id = $1`, [Number(id)]);
 
     res.json({ message: '部署を削除しました' });
   } catch (error) {

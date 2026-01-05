@@ -1,0 +1,25 @@
+{
+  "status": 201,
+  "ok": true,
+  "data": {
+    "id": 13,
+    "name": "Test Team 1767523701471",
+    "description": null,
+    "leader_id": null,
+    "created_at": "2026-01-04T10:48:21.477Z",
+    "webhook_url": null,
+    "is_active": true,
+    "leader_name": null,
+    "member_count": 0
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "190",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:48:21 GMT",
+    "etag": "W/\"be-3D2JpbZyFIKqvMZUjddd0Lq5lNI\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

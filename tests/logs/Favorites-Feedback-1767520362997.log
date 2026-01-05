@@ -1,0 +1,111 @@
+[2026-01-04T09:52:42.997Z] 
+================================================================================
+
+[2026-01-04T09:52:43.006Z] TEST MODULE: Favorites-Feedback
+[2026-01-04T09:52:43.047Z] Started at: 2026/1/4 18:52:43
+[2026-01-04T09:52:43.048Z] ================================================================================
+
+[2026-01-04T09:52:43.049Z] Starting Favorites & Feedback Module Tests...
+[2026-01-04T09:52:43.050Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:43.050Z] SETUP: Login users
+[2026-01-04T09:52:43.052Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:43.053Z] 
+[Step 1] Login as user
+[2026-01-04T09:52:43.400Z] ✅ User authenticated
+[2026-01-04T09:52:43.401Z] 
+[Step 2] Login as admin
+[2026-01-04T09:52:43.549Z] ✅ Admin authenticated
+[2026-01-04T09:52:44.063Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:44.064Z] TEST 1: Get Favorites
+[2026-01-04T09:52:44.065Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:44.066Z] 
+[Step 1] Fetch user favorites
+[2026-01-04T09:52:44.079Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\get-favorites-1767520364077.json
+[2026-01-04T09:52:44.079Z] ✅ Found 0 favorites
+[2026-01-04T09:52:44.080Z] ✅ TEST PASSED: Get Favorites
+[2026-01-04T09:52:44.081Z]   Details: {
+  "totalFavorites": 0
+}
+[2026-01-04T09:52:44.589Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:44.591Z] TEST 2: Get Page Favorites
+[2026-01-04T09:52:44.593Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:44.594Z] 
+[Step 1] Fetch user page favorites
+[2026-01-04T09:52:44.610Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\get-page-favorites-1767520364608.json
+[2026-01-04T09:52:44.611Z] ✅ Found 0 page favorites
+[2026-01-04T09:52:44.612Z] ✅ TEST PASSED: Get Page Favorites
+[2026-01-04T09:52:44.613Z]   Details: {
+  "totalPageFavorites": 0
+}
+[2026-01-04T09:52:45.116Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:45.116Z] TEST 3: Create Page Favorite
+[2026-01-04T09:52:45.117Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:45.117Z] 
+[Step 1] Create new page favorite
+[2026-01-04T09:52:45.119Z] ℹ️  Favorite data: {
+  "page_name": "Test Favorite Page",
+  "page_url": "/test-page",
+  "icon": "star"
+}
+[2026-01-04T09:52:45.129Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\create-page-favorite-1767520365128.json
+[2026-01-04T09:52:45.130Z] ❌ Create page favorite test failed: Assertion failed: Page favorite creation should succeed
+Status: 400
+Response: {"message":"ページパスとページ名は必須です"}
+[2026-01-04T09:52:45.131Z] ❌ TEST FAILED: Create Page Favorite
+[2026-01-04T09:52:45.132Z]   Details: {
+  "error": "Assertion failed: Page favorite creation should succeed\nStatus: 400\nResponse: {\"message\":\"ページパスとページ名は必須です\"}"
+}
+[2026-01-04T09:52:45.645Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:45.646Z] TEST 4: Submit Feedback
+[2026-01-04T09:52:45.646Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:45.647Z] 
+[Step 1] Submit new feedback
+[2026-01-04T09:52:45.649Z] ℹ️  Feedback data: {
+  "category": "suggestion",
+  "subject": "Test Feedback",
+  "description": "This is an automated test feedback submission",
+  "priority": "medium"
+}
+[2026-01-04T09:52:45.660Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\submit-feedback-1767520365659.json
+[2026-01-04T09:52:45.660Z] ❌ Submit feedback test failed: Assertion failed: Feedback submission should succeed
+Status: 400
+Response: {"message":"カテゴリ、件名、内容は必須です"}
+[2026-01-04T09:52:45.661Z] ❌ TEST FAILED: Submit Feedback
+[2026-01-04T09:52:45.662Z]   Details: {
+  "error": "Assertion failed: Feedback submission should succeed\nStatus: 400\nResponse: {\"message\":\"カテゴリ、件名、内容は必須です\"}"
+}
+[2026-01-04T09:52:46.176Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:46.177Z] TEST 5: Get All Feedback (Admin)
+[2026-01-04T09:52:46.178Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:46.179Z] 
+[Step 1] Fetch all feedback (admin view)
+[2026-01-04T09:52:46.190Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\favorites-feedback\get-all-feedback-1767520366189.json
+[2026-01-04T09:52:46.190Z] ✅ Found 1 feedback items
+[2026-01-04T09:52:46.191Z] ℹ️  Recent feedback:
+[2026-01-04T09:52:46.192Z]   - [1] Test Feedback (Bug Report) - Status: pending
+[2026-01-04T09:52:46.193Z] ✅ TEST PASSED: Get All Feedback
+[2026-01-04T09:52:46.193Z]   Details: {
+  "totalFeedback": 1
+}
+[2026-01-04T09:52:46.706Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:52:46.707Z] TEST 6: Update Feedback Status
+[2026-01-04T09:52:46.707Z] --------------------------------------------------------------------------------
+[2026-01-04T09:52:46.707Z] ⚠️  Skipping: No feedback ID available
+[2026-01-04T09:52:46.708Z] 
+================================================================================
+[2026-01-04T09:52:46.708Z] TEST SUMMARY
+[2026-01-04T09:52:46.708Z] ================================================================================
+[2026-01-04T09:52:46.708Z] Total Tests: 5
+[2026-01-04T09:52:46.709Z] Passed: 3
+[2026-01-04T09:52:46.709Z] Failed: 2
+[2026-01-04T09:52:46.710Z] Duration: 3.71s
+[2026-01-04T09:52:46.710Z] Log file: C:\Work\shinsei-shonin\tests\logs\Favorites-Feedback-1767520362997.log
+[2026-01-04T09:52:46.710Z] ================================================================================
+

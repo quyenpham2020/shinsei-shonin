@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "id": 26,
+    "employee_id": "test_1767520447613",
+    "name": "Updated Test User",
+    "email": "test_1767520447613@example.com",
+    "department": "g1",
+    "role": "user",
+    "created_at": "2026-01-04T09:54:07.677Z"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "184",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:54:08 GMT",
+    "etag": "W/\"b8-GGbRafjBnlLlqWDgYIL9TBAP+Fo\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

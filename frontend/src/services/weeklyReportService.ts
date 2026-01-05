@@ -9,6 +9,7 @@ export interface WeeklyReport {
   achievements: string | null;
   challenges: string | null;
   next_week_plan: string | null;
+  overview: string | null;
   user_name?: string;
   department?: string;
   employee_id?: string;
@@ -141,6 +142,7 @@ export const weeklyReportService = {
     achievements?: string;
     challenges?: string;
     nextWeekPlan?: string;
+    overview?: string;
     weekStart?: string;
   }): Promise<{ message: string; report: WeeklyReport }> => {
     const response = await api.post('/weekly-reports', data);
@@ -174,6 +176,34 @@ export const weeklyReportService = {
 
   getMemberReports: async (userId: number): Promise<MemberDetailData> => {
     const response = await api.get('/weekly-reports/member/' + userId);
+    return response.data;
+  },
+
+  generateOverview: async (data: {
+    content: string;
+    achievements?: string;
+    challenges?: string;
+    nextWeekPlan?: string;
+  }): Promise<{ overview: string }> => {
+    const response = await api.post('/weekly-reports/generate-overview', data);
+    return response.data;
+  },
+
+  exportToExcel: async (filters: {
+    department?: string;
+    team?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Blob> => {
+    const params = new URLSearchParams();
+    if (filters.department) params.append('department', filters.department);
+    if (filters.team) params.append('team', filters.team);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+
+    const response = await api.get('/weekly-reports/export?' + params.toString(), {
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

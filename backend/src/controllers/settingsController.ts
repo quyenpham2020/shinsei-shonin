@@ -3,9 +3,9 @@ import { getOne, getAll, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
 
 // Get all system settings (admin only)
-export const getAllSettings = (req: AuthRequest, res: Response): void => {
+export const getAllSettings = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const settings = getAll(`
+    const settings = await getAll(`
       SELECT id, setting_key, setting_value, description, created_at, updated_at
       FROM system_settings
       ORDER BY setting_key ASC
@@ -19,11 +19,11 @@ export const getAllSettings = (req: AuthRequest, res: Response): void => {
 };
 
 // Get single setting by key
-export const getSetting = (req: AuthRequest, res: Response): void => {
+export const getSetting = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
 
-    const setting = getOne<{
+    const setting = await getOne<{
       id: number;
       setting_key: string;
       setting_value: string;
@@ -33,7 +33,7 @@ export const getSetting = (req: AuthRequest, res: Response): void => {
     }>(`
       SELECT id, setting_key, setting_value, description, created_at, updated_at
       FROM system_settings
-      WHERE setting_key = ?
+      WHERE setting_key = $1
     `, [key]);
 
     if (!setting) {
@@ -49,7 +49,7 @@ export const getSetting = (req: AuthRequest, res: Response): void => {
 };
 
 // Get public setting (no auth required - for checking if features are enabled)
-export const getPublicSetting = (req: AuthRequest, res: Response): void => {
+export const getPublicSetting = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
 
@@ -61,13 +61,13 @@ export const getPublicSetting = (req: AuthRequest, res: Response): void => {
       return;
     }
 
-    const setting = getOne<{
+    const setting = await getOne<{
       setting_key: string;
       setting_value: string;
     }>(`
       SELECT setting_key, setting_value
       FROM system_settings
-      WHERE setting_key = ?
+      WHERE setting_key = $1
     `, [key]);
 
     if (!setting) {
@@ -87,7 +87,7 @@ export const getPublicSetting = (req: AuthRequest, res: Response): void => {
 };
 
 // Update setting (admin only)
-export const updateSetting = (req: AuthRequest, res: Response): void => {
+export const updateSetting = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -98,8 +98,8 @@ export const updateSetting = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if setting exists
-    const existingSetting = getOne<{ id: number }>(
-      'SELECT id FROM system_settings WHERE setting_key = ?',
+    const existingSetting = await getOne<{ id: number }>(
+      'SELECT id FROM system_settings WHERE setting_key = $1',
       [key]
     );
 
@@ -109,17 +109,17 @@ export const updateSetting = (req: AuthRequest, res: Response): void => {
     }
 
     // Update setting
-    runQuery(`
+    await runQuery(`
       UPDATE system_settings
-      SET setting_value = ?,
-          updated_at = datetime('now')
-      WHERE setting_key = ?
+      SET setting_value = $1,
+          updated_at = NOW()
+      WHERE setting_key = $2
     `, [String(value), key]);
 
-    const updatedSetting = getOne(`
+    const updatedSetting = await getOne(`
       SELECT id, setting_key, setting_value, description, created_at, updated_at
       FROM system_settings
-      WHERE setting_key = ?
+      WHERE setting_key = $1
     `, [key]);
 
     res.json(updatedSetting);
@@ -130,7 +130,7 @@ export const updateSetting = (req: AuthRequest, res: Response): void => {
 };
 
 // Create new setting (admin only)
-export const createSetting = (req: AuthRequest, res: Response): void => {
+export const createSetting = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { settingKey, settingValue, description } = req.body;
 
@@ -141,8 +141,8 @@ export const createSetting = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if setting already exists
-    const existingSetting = getOne(
-      'SELECT id FROM system_settings WHERE setting_key = ?',
+    const existingSetting = await getOne(
+      'SELECT id FROM system_settings WHERE setting_key = $1',
       [settingKey]
     );
 
@@ -152,16 +152,16 @@ export const createSetting = (req: AuthRequest, res: Response): void => {
     }
 
     // Create setting
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO system_settings (setting_key, setting_value, description)
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3) RETURNING id
     `, [settingKey, String(settingValue), description || null]);
 
-    const newSetting = getOne(`
+    const newSetting = await getOne(`
       SELECT id, setting_key, setting_value, description, created_at, updated_at
       FROM system_settings
-      WHERE id = ?
-    `, [result.lastInsertRowid]);
+      WHERE id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newSetting);
   } catch (error) {
@@ -171,7 +171,7 @@ export const createSetting = (req: AuthRequest, res: Response): void => {
 };
 
 // Delete setting (admin only)
-export const deleteSetting = (req: AuthRequest, res: Response): void => {
+export const deleteSetting = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
 
@@ -183,8 +183,8 @@ export const deleteSetting = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if setting exists
-    const existingSetting = getOne<{ id: number }>(
-      'SELECT id FROM system_settings WHERE setting_key = ?',
+    const existingSetting = await getOne<{ id: number }>(
+      'SELECT id FROM system_settings WHERE setting_key = $1',
       [key]
     );
 
@@ -194,7 +194,7 @@ export const deleteSetting = (req: AuthRequest, res: Response): void => {
     }
 
     // Delete setting
-    runQuery('DELETE FROM system_settings WHERE setting_key = ?', [key]);
+    await runQuery('DELETE FROM system_settings WHERE setting_key = $1', [key]);
 
     res.json({ message: '設定を削除しました' });
   } catch (error) {

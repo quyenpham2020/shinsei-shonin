@@ -1,0 +1,48 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": [
+    {
+      "id": 1,
+      "code": null,
+      "name": "g7",
+      "description": null,
+      "is_active": true,
+      "created_at": "2025-12-30T12:47:20.843Z"
+    },
+    {
+      "id": 2,
+      "code": null,
+      "name": "IT部門",
+      "description": "システム開発・運用",
+      "is_active": true,
+      "created_at": "2026-01-02T13:51:42.809Z"
+    },
+    {
+      "id": 3,
+      "code": null,
+      "name": "営業部",
+      "description": "営業活動全般",
+      "is_active": true,
+      "created_at": "2026-01-02T13:51:42.813Z"
+    },
+    {
+      "id": 4,
+      "code": null,
+      "name": "人事部",
+      "description": "人事・採用",
+      "is_active": true,
+      "created_at": "2026-01-02T13:51:42.814Z"
+    }
+  ],
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "511",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:55:26 GMT",
+    "etag": "W/\"1ff-bKvctkerz5E+bGK1nyjHRzofyQE\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

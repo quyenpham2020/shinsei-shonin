@@ -1,0 +1,42 @@
+{
+  "moduleName": "Authentication",
+  "timestamp": "2026-01-04T10:48:02.057Z",
+  "duration": "3.72",
+  "total": 4,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "User Login",
+      "passed": true,
+      "details": {
+        "adminToken": "Generated",
+        "userToken": "Generated"
+      },
+      "timestamp": "2026-01-04T10:47:58.892Z"
+    },
+    {
+      "name": "System Access Verification",
+      "passed": true,
+      "details": {
+        "adminSystems": [],
+        "userSystems": []
+      },
+      "timestamp": "2026-01-04T10:47:59.928Z"
+    },
+    {
+      "name": "Password Operations",
+      "passed": true,
+      "details": {
+        "forgotPasswordStatus": 404
+      },
+      "timestamp": "2026-01-04T10:48:00.944Z"
+    },
+    {
+      "name": "Authorization & Security",
+      "passed": true,
+      "details": null,
+      "timestamp": "2026-01-04T10:48:02.048Z"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { config } from './config/env';
-import { initDatabase } from './config/database';
+import { initDatabase, initializeSchema } from './config/database';
 import { i18nMiddleware } from './middlewares/i18n';
 import authRoutes from './routes/auth';
 import applicationRoutes from './routes/applications';
@@ -21,6 +21,7 @@ import feedbackRoutes from './routes/feedback';
 import settingsRoutes from './routes/settings';
 import customerRoutes from './routes/customers';
 import revenueRoutes from './routes/revenue';
+import seedRoutes from './routes/seed';
 import { initScheduler } from './services/scheduler';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api', seedRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -57,14 +59,19 @@ app.get('/api/health', (req, res) => {
 // Initialize database and start server
 async function start() {
   try {
-    await initDatabase();
-    console.log('Database initialized');
+    initDatabase();
+    console.log('Database connection initialized');
+
+    await initializeSchema();
+    console.log('Database schema initialized');
 
     // Initialize scheduler for Friday reminders
     initScheduler();
 
-    app.listen(config.port, () => {
-      console.log(`Server is running on port ${config.port}`);
+    const host = process.env.HOST || '0.0.0.0';
+    app.listen(config.port, host, () => {
+      console.log(`Server is running on ${host}:${config.port}`);
+      console.log(`Access from network: http://192.168.3.5:${config.port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -25,7 +25,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const user = getOne<User>('SELECT * FROM users WHERE employee_id = ?', [employeeId]);
+    const user = await getOne<User>('SELECT * FROM users WHERE LOWER(employee_id) = LOWER($1)', [employeeId]);
 
     if (!user) {
       res.status(401).json({ message: req.__('errors.invalidCredentials') });
@@ -61,7 +61,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         department: user.department,
         role: user.role,
-        mustChangePassword: user.must_change_password === 1,
+        mustChangePassword: !!user.must_change_password,
       },
     });
   } catch (error) {

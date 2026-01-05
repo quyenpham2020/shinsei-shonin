@@ -1,0 +1,103 @@
+[2026-01-04T09:54:25.809Z] 
+================================================================================
+
+[2026-01-04T09:54:25.812Z] TEST MODULE: System-Access
+[2026-01-04T09:54:25.824Z] Started at: 2026/1/4 18:54:25
+[2026-01-04T09:54:25.824Z] ================================================================================
+
+[2026-01-04T09:54:25.825Z] Starting System Access Module Tests...
+[2026-01-04T09:54:25.825Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:25.825Z] SETUP: Login users
+[2026-01-04T09:54:25.826Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:25.826Z] 
+[Step 1] Login as admin
+[2026-01-04T09:54:25.929Z] ✅ Admin authenticated
+[2026-01-04T09:54:25.930Z] 
+[Step 2] Login as user
+[2026-01-04T09:54:25.991Z] ✅ User authenticated (ID: 18)
+[2026-01-04T09:54:26.498Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:26.499Z] TEST 1: Get My System Access
+[2026-01-04T09:54:26.499Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:26.499Z] 
+[Step 1] Get admin system access
+[2026-01-04T09:54:26.504Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\system-access\admin-my-access-1767520466503.json
+[2026-01-04T09:54:26.505Z] ✅ Admin access: All systems
+[2026-01-04T09:54:26.505Z] 
+[Step 2] Get user system access
+[2026-01-04T09:54:26.508Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\system-access\user-my-access-1767520466507.json
+[2026-01-04T09:54:26.508Z] ✅ User access: 
+[2026-01-04T09:54:26.508Z] ✅ TEST PASSED: Get My System Access
+[2026-01-04T09:54:26.508Z]   Details: {
+  "adminSystems": [],
+  "userSystems": []
+}
+[2026-01-04T09:54:27.014Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:27.015Z] TEST 2: Get All Users With Access
+[2026-01-04T09:54:27.015Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:27.016Z] 
+[Step 1] Fetch all users with their system access
+[2026-01-04T09:54:27.021Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\system-access\get-users-with-access-1767520467021.json
+[2026-01-04T09:54:27.022Z] ✅ Found 10 users
+[2026-01-04T09:54:27.022Z] ℹ️  Sample users with access:
+[2026-01-04T09:54:27.022Z]   - dev001: Developer 1 - [weekly-report, shinsei-shonin]
+[2026-01-04T09:54:27.022Z]   - teamlead001: Team Leader 1 - [weekly-report, shinsei-shonin]
+[2026-01-04T09:54:27.022Z]   - admin: admin - []
+[2026-01-04T09:54:27.022Z]   - g71: g71 - [weekly-report, shinsei-shonin]
+[2026-01-04T09:54:27.023Z]   - quyen: quyen - [weekly-report, shinsei-shonin]
+[2026-01-04T09:54:27.023Z] ✅ TEST PASSED: Get All Users With Access
+[2026-01-04T09:54:27.023Z]   Details: {
+  "totalUsers": 10
+}
+[2026-01-04T09:54:27.526Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:27.526Z] TEST 3: Bulk Update System Access
+[2026-01-04T09:54:27.526Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:27.527Z] 
+[Step 1] Get current user access
+[2026-01-04T09:54:27.529Z] ℹ️  Current systems: 
+[2026-01-04T09:54:27.530Z] 
+[Step 2] Update system access
+[2026-01-04T09:54:27.530Z] ℹ️  Updating access: [
+  {
+    "userId": 18,
+    "systems": [
+      "shinsei-shonin",
+      "weekly-report"
+    ]
+  }
+]
+[2026-01-04T09:54:27.536Z] ℹ️  Response saved to: C:\Work\shinsei-shonin\tests\screenshots\system-access\bulk-update-access-1767520467536.json
+[2026-01-04T09:54:27.536Z] ✅ System access updated successfully
+[2026-01-04T09:54:27.536Z] 
+[Step 3] Verify updated access
+[2026-01-04T09:54:27.539Z] ℹ️  Updated systems: shinsei-shonin, weekly-report
+[2026-01-04T09:54:27.539Z] ✅ TEST PASSED: Bulk Update System Access
+[2026-01-04T09:54:27.539Z]   Details: {
+  "userId": 18,
+  "updatedSystems": [
+    "shinsei-shonin",
+    "weekly-report"
+  ]
+}
+[2026-01-04T09:54:28.054Z] 
+--------------------------------------------------------------------------------
+[2026-01-04T09:54:28.055Z] TEST 4: Access Restriction Verification
+[2026-01-04T09:54:28.055Z] --------------------------------------------------------------------------------
+[2026-01-04T09:54:28.055Z] 
+[Step 1] Test non-admin cannot update access
+[2026-01-04T09:54:28.064Z] ✅ Non-admin correctly denied access to update
+[2026-01-04T09:54:28.064Z] ✅ TEST PASSED: Access Restriction Verification
+[2026-01-04T09:54:28.065Z] 
+================================================================================
+[2026-01-04T09:54:28.065Z] TEST SUMMARY
+[2026-01-04T09:54:28.065Z] ================================================================================
+[2026-01-04T09:54:28.065Z] Total Tests: 4
+[2026-01-04T09:54:28.066Z] Passed: 4
+[2026-01-04T09:54:28.066Z] Failed: 0
+[2026-01-04T09:54:28.066Z] Duration: 2.26s
+[2026-01-04T09:54:28.066Z] Log file: C:\Work\shinsei-shonin\tests\logs\System-Access-1767520465809.log
+[2026-01-04T09:54:28.066Z] ================================================================================
+

@@ -1,0 +1,17 @@
+{
+  "status": 500,
+  "ok": false,
+  "data": {
+    "message": "サーバーエラーが発生しました"
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "56",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:44:54 GMT",
+    "etag": "W/\"38-X9R5BkqDj1O9pQByQZd8MoznRvA\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

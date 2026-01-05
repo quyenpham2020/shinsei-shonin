@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -27,6 +27,19 @@ const ForcePasswordChangeDialog: React.FC<ForcePasswordChangeDialogProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [actuallyOpen, setActuallyOpen] = useState(false);
+
+  // Delay dialog opening to prevent flash on login
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        setActuallyOpen(true);
+      }, 300); // 300ms delay to prevent flash
+      return () => clearTimeout(timer);
+    } else {
+      setActuallyOpen(false);
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +72,7 @@ const ForcePasswordChangeDialog: React.FC<ForcePasswordChangeDialogProps> = ({
 
   return (
     <Dialog
-      open={open}
+      open={actuallyOpen}
       maxWidth="sm"
       fullWidth
       disableEscapeKeyDown

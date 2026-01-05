@@ -3,7 +3,7 @@ import { getOne, getAll, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
 
 // Get all feedback (admin only - see all, users see their own)
-export const getAllFeedback = (req: AuthRequest, res: Response): void => {
+export const getAllFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     const { status } = req.query;
@@ -17,22 +17,25 @@ export const getAllFeedback = (req: AuthRequest, res: Response): void => {
       WHERE 1=1
     `;
     const params: (string | number)[] = [];
+    let paramIndex = 1;
 
     // Regular users only see their own feedback
     if (user.role !== 'admin') {
-      query += ' AND f.user_id = ?';
+      query += ` AND f.user_id = $${paramIndex}`;
       params.push(user.id);
+      paramIndex++;
     }
 
     // Filter by status if provided
     if (status && status !== 'all') {
-      query += ' AND f.status = ?';
+      query += ` AND f.status = $${paramIndex}`;
       params.push(status as string);
+      paramIndex++;
     }
 
     query += ' ORDER BY f.created_at DESC';
 
-    const feedback = getAll(query, params);
+    const feedback = await getAll(query, params);
     res.json(feedback);
   } catch (error) {
     console.error('Get all feedback error:', error);
@@ -41,12 +44,12 @@ export const getAllFeedback = (req: AuthRequest, res: Response): void => {
 };
 
 // Get single feedback by ID
-export const getFeedback = (req: AuthRequest, res: Response): void => {
+export const getFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
 
-    const feedback = getOne<{
+    const feedback = await getOne<{
       id: number;
       user_id: number;
       category: string;
@@ -68,7 +71,7 @@ export const getFeedback = (req: AuthRequest, res: Response): void => {
       FROM feedback f
       LEFT JOIN users u ON f.user_id = u.id
       LEFT JOIN users u2 ON f.responded_by = u2.id
-      WHERE f.id = ?
+      WHERE f.id = $1
     `, [Number(id)]);
 
     if (!feedback) {
@@ -90,7 +93,7 @@ export const getFeedback = (req: AuthRequest, res: Response): void => {
 };
 
 // Create new feedback
-export const createFeedback = (req: AuthRequest, res: Response): void => {
+export const createFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
     const { category, subject, content } = req.body;
@@ -112,8 +115,8 @@ export const createFeedback = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if feedback is enabled
-    const setting = getOne<{ setting_value: string }>(
-      'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+    const setting = await getOne<{ setting_value: string }>(
+      'SELECT setting_value FROM system_settings WHERE setting_key = $1',
       ['feedback_enabled']
     );
 
@@ -123,17 +126,17 @@ export const createFeedback = (req: AuthRequest, res: Response): void => {
     }
 
     // Create feedback
-    const result = runQuery(`
+    const result = await runQuery(`
       INSERT INTO feedback (user_id, category, subject, content, status)
-      VALUES (?, ?, ?, ?, 'pending')
+      VALUES ($1, $2, $3, $4, 'pending') RETURNING id
     `, [user.id, category, subject, content]);
 
-    const newFeedback = getOne(`
+    const newFeedback = await getOne(`
       SELECT f.*, u.name as user_name, u.email as user_email, u.department
       FROM feedback f
       LEFT JOIN users u ON f.user_id = u.id
-      WHERE f.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE f.id = $1
+    `, [result.rows[0].id]);
 
     res.status(201).json(newFeedback);
   } catch (error) {
@@ -143,7 +146,7 @@ export const createFeedback = (req: AuthRequest, res: Response): void => {
 };
 
 // Update feedback (admin only - for responding)
-export const updateFeedback = (req: AuthRequest, res: Response): void => {
+export const updateFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
@@ -156,8 +159,8 @@ export const updateFeedback = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if feedback exists
-    const existingFeedback = getOne<{ id: number }>(
-      'SELECT id FROM feedback WHERE id = ?',
+    const existingFeedback = await getOne<{ id: number }>(
+      'SELECT id FROM feedback WHERE id = $1',
       [Number(id)]
     );
 
@@ -167,26 +170,25 @@ export const updateFeedback = (req: AuthRequest, res: Response): void => {
     }
 
     // Update feedback
-    const responded_at = adminResponse ? 'datetime(\'now\')' : 'NULL';
     const responded_by = adminResponse ? user.id : null;
 
-    runQuery(`
+    await runQuery(`
       UPDATE feedback
-      SET status = COALESCE(?, status),
-          admin_response = COALESCE(?, admin_response),
-          responded_at = ${adminResponse ? 'datetime(\'now\')' : 'responded_at'},
-          responded_by = COALESCE(?, responded_by),
-          updated_at = datetime('now')
-      WHERE id = ?
+      SET status = COALESCE($1, status),
+          admin_response = COALESCE($2, admin_response),
+          responded_at = ${adminResponse ? 'NOW()' : 'responded_at'},
+          responded_by = COALESCE($3, responded_by),
+          updated_at = NOW()
+      WHERE id = $4
     `, [status || null, adminResponse || null, responded_by, Number(id)]);
 
-    const updatedFeedback = getOne(`
+    const updatedFeedback = await getOne(`
       SELECT f.*, u.name as user_name, u.email as user_email, u.department,
              u2.name as responder_name
       FROM feedback f
       LEFT JOIN users u ON f.user_id = u.id
       LEFT JOIN users u2 ON f.responded_by = u2.id
-      WHERE f.id = ?
+      WHERE f.id = $1
     `, [Number(id)]);
 
     res.json(updatedFeedback);
@@ -197,7 +199,7 @@ export const updateFeedback = (req: AuthRequest, res: Response): void => {
 };
 
 // Delete feedback (admin only)
-export const deleteFeedback = (req: AuthRequest, res: Response): void => {
+export const deleteFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user = req.user!;
@@ -209,8 +211,8 @@ export const deleteFeedback = (req: AuthRequest, res: Response): void => {
     }
 
     // Check if feedback exists
-    const existingFeedback = getOne<{ id: number }>(
-      'SELECT id FROM feedback WHERE id = ?',
+    const existingFeedback = await getOne<{ id: number }>(
+      'SELECT id FROM feedback WHERE id = $1',
       [Number(id)]
     );
 
@@ -220,7 +222,7 @@ export const deleteFeedback = (req: AuthRequest, res: Response): void => {
     }
 
     // Delete feedback
-    runQuery('DELETE FROM feedback WHERE id = ?', [Number(id)]);
+    await runQuery('DELETE FROM feedback WHERE id = $1', [Number(id)]);
 
     res.json({ message: 'フィードバックを削除しました' });
   } catch (error) {

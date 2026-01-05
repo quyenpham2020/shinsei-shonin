@@ -129,6 +129,41 @@ const SystemAccessPage: React.FC = () => {
     }
   };
 
+  const handleCheckAll = () => {
+    const newChanges = new Map(changes);
+    const allSystemIds = accessibleSystems.map(s => s.id);
+
+    users.forEach(user => {
+      // Skip admin users
+      if (user.role !== 'admin') {
+        newChanges.set(user.id, allSystemIds);
+      }
+    });
+
+    setChanges(newChanges);
+    setSuccess('全ユーザーに全システムへのアクセス権を付与しました（管理者を除く）');
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handleUncheckAll = () => {
+    if (!window.confirm('全ユーザーのアクセス権を削除します。よろしいですか？\n※セキュリティ上の理由で全てのアクセスを遮断します。')) {
+      return;
+    }
+
+    const newChanges = new Map(changes);
+
+    users.forEach(user => {
+      // Skip admin users
+      if (user.role !== 'admin') {
+        newChanges.set(user.id, []);
+      }
+    });
+
+    setChanges(newChanges);
+    setSuccess('全ユーザーのアクセス権を削除しました（管理者を除く）');
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
   const filteredUsers = users.filter(user => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -375,6 +410,15 @@ const SystemAccessPage: React.FC = () => {
               </Button>
             </ButtonGroup>
           )}
+
+          <ButtonGroup size="small" variant="outlined" color="warning">
+            <Button onClick={handleCheckAll}>
+              全選択
+            </Button>
+            <Button onClick={handleUncheckAll} color="error">
+              全解除
+            </Button>
+          </ButtonGroup>
 
           <Box sx={{ flex: 1 }} />
 

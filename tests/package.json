@@ -1,0 +1,32 @@
+{
+  "name": "shinsei-shonin-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive API testing suite for Shinsei-Shonin application",
+  "main": "run-all-tests.js",
+  "scripts": {
+    "test": "node run-all-tests.js",
+    "test:auth": "node api/01-auth-test.js",
+    "test:users": "node api/02-users-test.js",
+    "test:applications": "node api/03-applications-test.js",
+    "test:reports": "node api/04-weekly-reports-test.js",
+    "test:departments": "node api/05-departments-teams-test.js",
+    "test:access": "node api/06-system-access-test.js",
+    "test:favorites": "node api/07-favorites-feedback-test.js",
+    "clean": "node -e \"const fs=require('fs'),path=require('path');['logs','screenshots'].forEach(d=>{const dir=path.join(__dirname,d);if(fs.existsSync(dir))fs.readdirSync(dir).forEach(f=>fs.unlinkSync(path.join(dir,f)))});\""
+  },
+  "keywords": [
+    "testing",
+    "api",
+    "automation",
+    "shinsei-shonin"
+  ],
+  "author": "Development Team",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/shinsei-shonin.git"
+  }
+}

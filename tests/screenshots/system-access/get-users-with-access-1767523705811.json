@@ -1,0 +1,140 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": [
+    {
+      "id": 22,
+      "employee_id": "dev001",
+      "name": "Developer 1",
+      "email": "dev1@company.com",
+      "department": "g1",
+      "team_name": null,
+      "role": "user",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 21,
+      "employee_id": "teamlead001",
+      "name": "Team Leader 1",
+      "email": "teamlead1@company.com",
+      "department": "g1",
+      "team_name": "Development Team 1",
+      "role": "onsite_leader",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 11,
+      "employee_id": "admin",
+      "name": "admin",
+      "email": "admin",
+      "department": "g7",
+      "team_name": null,
+      "role": "admin",
+      "systems": []
+    },
+    {
+      "id": 13,
+      "employee_id": "g71",
+      "name": "g71",
+      "email": "g71",
+      "department": "g7",
+      "team_name": null,
+      "role": "user",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 24,
+      "employee_id": "quyen",
+      "name": "quyen",
+      "email": "quyen",
+      "department": "g7",
+      "team_name": null,
+      "role": "gm",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 18,
+      "employee_id": "quyet",
+      "name": "quyet",
+      "email": "quyet",
+      "department": "g7",
+      "team_name": null,
+      "role": "user",
+      "systems": []
+    },
+    {
+      "id": 17,
+      "employee_id": "tai",
+      "name": "tai",
+      "email": "tai",
+      "department": "g7",
+      "team_name": null,
+      "role": "onsite_leader",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 23,
+      "employee_id": "van",
+      "name": "van",
+      "email": "van",
+      "department": "g7",
+      "team_name": null,
+      "role": "onsite_leader",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 19,
+      "employee_id": "vu",
+      "name": "vu",
+      "email": "vu",
+      "department": "IT部門",
+      "team_name": null,
+      "role": "gm",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    },
+    {
+      "id": 20,
+      "employee_id": "vucdo",
+      "name": "vucdo",
+      "email": "vucdo",
+      "department": "IT部門",
+      "team_name": null,
+      "role": "bod",
+      "systems": [
+        "weekly-report",
+        "shinsei-shonin"
+      ]
+    }
+  ],
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "1579",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 10:48:25 GMT",
+    "etag": "W/\"62b-ojiEnmtrWpz2U2uNxueGaQtXnVM\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

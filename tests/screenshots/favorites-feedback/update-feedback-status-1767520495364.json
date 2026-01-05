@@ -1,0 +1,32 @@
+{
+  "status": 200,
+  "ok": true,
+  "data": {
+    "id": 4,
+    "user_id": 18,
+    "category": "suggestion",
+    "subject": "Test Feedback",
+    "content": "This is an automated test feedback submission",
+    "status": "in_progress",
+    "created_at": "2026-01-04T09:54:54.328Z",
+    "is_active": true,
+    "admin_response": null,
+    "responded_at": null,
+    "responded_by": null,
+    "updated_at": "2026-01-04T09:54:55.362Z",
+    "user_name": "quyet",
+    "user_email": "quyet",
+    "department": "g7",
+    "responder_name": null
+  },
+  "headers": {
+    "access-control-allow-origin": "*",
+    "connection": "keep-alive",
+    "content-length": "392",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sun, 04 Jan 2026 09:54:55 GMT",
+    "etag": "W/\"188-LdqhW6ZiqeybCccZjP4eduTIGz8\"",
+    "keep-alive": "timeout=5",
+    "x-powered-by": "Express"
+  }
+}

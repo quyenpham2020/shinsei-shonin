@@ -6,6 +6,7 @@ import {
   createTeam,
   updateTeam,
   deleteTeam,
+  bulkDeleteTeams,
   addTeamMember,
   removeTeamMember,
   getAvailableMembers
@@ -21,6 +22,7 @@ router.use(authenticateToken);
 router.get('/', getAllTeams);
 router.get('/:id', getTeamById);
 router.post('/', createTeam);
+router.post('/bulk-delete', bulkDeleteTeams);
 router.put('/:id', updateTeam);
 router.delete('/:id', deleteTeam);
 

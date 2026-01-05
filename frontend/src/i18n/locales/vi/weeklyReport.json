@@ -1,0 +1,94 @@
+{
+  "title": "Quản Lý Báo Cáo Tuần",
+  "submitReminder": "Vui Lòng Gửi Báo Cáo Tuần",
+  "submitReminderMessage": "Hãy gửi báo cáo tuần ở chỗ dễ nhìn trên web",
+  "notSubmittedYet": "Báo cáo cho tuần {{weekStart}} chưa được gửi. Vui lòng nhập báo cáo bằng form dưới đây.",
+  "tabs": {
+    "input": "Nhập Báo Cáo",
+    "comparison": "So Sánh Tuần",
+    "memberList": "Danh Sách Thành Viên"
+  },
+  "preFilled": "Nội dung báo cáo tuần trước đã được điền sẵn. Vui lòng chỉnh sửa và lưu làm báo cáo tuần này.",
+  "form": {
+    "content": "Nội Dung Báo Cáo Tuần Này",
+    "contentPlaceholder": "Vui lòng mô tả công việc bạn đã thực hiện tuần này",
+    "achievements": "Thành Tích & Hoàn Thành",
+    "achievementsPlaceholder": "Vui lòng mô tả những gì bạn đã hoàn thành tuần này",
+    "challenges": "Thách Thức & Vấn Đề",
+    "challengesPlaceholder": "Vui lòng mô tả các thách thức hoặc vấn đề bạn gặp phải",
+    "nextWeekPlan": "Kế Hoạch Tuần Sau",
+    "nextWeekPlanPlaceholder": "Vui lòng mô tả công việc bạn dự định thực hiện tuần sau",
+    "contentRequired": "Vui lòng nhập nội dung báo cáo"
+  },
+  "overview": {
+    "title": "Tổng Quan (Báo Cáo Ngắn Gọn Để Chia Sẻ Phòng Ban)",
+    "description": "AI sẽ tự động tạo tổng quan ngắn gọn từ báo cáo chi tiết ở trên. Bạn có thể chỉnh sửa nội dung sau khi tạo.",
+    "generateButton": "Tạo Tổng Quan",
+    "generating": "Đang Tạo Tổng Quan...",
+    "placeholder": "Nhấn nút 'Tạo Tổng Quan' để AI tự động tạo",
+    "helperText": "Vui lòng xem xét và chỉnh sửa nội dung trước khi lưu báo cáo",
+    "requireContent": "Vui lòng nhập nội dung báo cáo trước khi tạo tổng quan",
+    "generateSuccess": "Đã tạo tổng quan thành công. Vui lòng xem xét và chỉnh sửa nội dung.",
+    "generateError": "Không thể tạo tổng quan"
+  },
+  "buttons": {
+    "save": "Lưu Báo Cáo",
+    "saving": "Đang Lưu..."
+  },
+  "messages": {
+    "saveSuccess": "Đã lưu báo cáo tuần thành công",
+    "saveError": "Không thể lưu báo cáo"
+  },
+  "comparison": {
+    "previousWeek": "Tuần Trước",
+    "currentWeek": "Tuần Này",
+    "items": {
+      "content": "Nội Dung Báo Cáo",
+      "achievements": "Thành Tích",
+      "challenges": "Thách Thức",
+      "nextWeekPlan": "Kế Hoạch Tuần Sau"
+    },
+    "notSubmitted": "Chưa Gửi"
+  },
+  "memberList": {
+    "title": "Báo Cáo Tuần Của Thành Viên (3 Tuần Gần Nhất)",
+    "thisWeek": "Tuần Này",
+    "submitted": "Đã Gửi",
+    "notSubmitted": "Chưa Gửi",
+    "clickToView": "* Nhấp vào thành viên để xem nội dung báo cáo chi tiết",
+    "columns": {
+      "employeeId": "Mã NV",
+      "name": "Họ Tên",
+      "department": "Phòng Ban"
+    }
+  },
+  "memberDetail": {
+    "title": "Lịch Sử Báo Cáo Tuần",
+    "department": "Phòng Ban",
+    "email": "Email",
+    "noReports": "Không có dữ liệu báo cáo",
+    "latest": "Mới Nhất",
+    "updated": "Cập Nhật",
+    "close": "Đóng",
+    "scrollNote": "* Cuộn ngang để xem báo cáo quá khứ. Hiển thị theo thứ tự từ trái (mới nhất) sang phải.",
+    "items": {
+      "content": "Nội Dung Báo Cáo",
+      "achievements": "Thành Tích & Hoàn Thành",
+      "challenges": "Thách Thức & Vấn Đề",
+      "nextWeekPlan": "Kế Hoạch Tuần Sau"
+    }
+  },
+  "export": {
+    "title": "Xuất Excel",
+    "department": "Phòng Ban",
+    "team": "Nhóm",
+    "startDate": "Ngày Bắt Đầu",
+    "endDate": "Ngày Kết Thúc",
+    "exportButton": "Xuất Excel",
+    "exporting": "Đang Xuất...",
+    "allData": "Tất Cả",
+    "filterNote": "* Nếu không chỉ định bộ lọc, tất cả dữ liệu sẽ được xuất",
+    "downloadSuccess": "Đã tải file Excel thành công",
+    "downloadError": "Không thể xuất Excel"
+  }
+}

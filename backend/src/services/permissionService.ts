@@ -87,9 +87,9 @@ export function hasAuthorityOver(
  * Get all users that an actor has authority over
  */
 export async function getUsersUnderAuthority(actorId: number): Promise<number[]> {
-  const actor = getOne<UserPermissionInfo>(`
+  const actor = await getOne<UserPermissionInfo>(`
     SELECT id, role, department, department_id, team_id
-    FROM users WHERE id = ?
+    FROM users WHERE id = $1
   `, [actorId]);
 
   if (!actor) {
@@ -98,14 +98,14 @@ export async function getUsersUnderAuthority(actorId: number): Promise<number[]>
 
   // Admin sees all
   if (actor.role === 'admin') {
-    const allUsers = getAll<{ id: number }>(`SELECT id FROM users WHERE id != ?`, [actorId]);
+    const allUsers = await getAll<{ id: number }>(`SELECT id FROM users WHERE id != $1`, [actorId]);
     return allUsers.map(u => u.id);
   }
 
   // BOD sees all except admins
   if (actor.role === 'bod') {
-    const users = getAll<{ id: number }>(`
-      SELECT id FROM users WHERE role != 'admin' AND id != ?
+    const users = await getAll<{ id: number }>(`
+      SELECT id FROM users WHERE role != 'admin' AND id != $1
     `, [actorId]);
     return users.map(u => u.id);
   }
@@ -114,18 +114,18 @@ export async function getUsersUnderAuthority(actorId: number): Promise<number[]>
   if (actor.role === 'gm') {
     let users: { id: number }[];
     if (actor.department_id) {
-      users = getAll<{ id: number }>(`
+      users = await getAll<{ id: number }>(`
         SELECT id FROM users
-        WHERE department_id = ?
+        WHERE department_id = $1
         AND role NOT IN ('admin', 'bod', 'gm')
-        AND id != ?
+        AND id != $2
       `, [actor.department_id, actorId]);
     } else {
-      users = getAll<{ id: number }>(`
+      users = await getAll<{ id: number }>(`
         SELECT id FROM users
-        WHERE department = ?
+        WHERE department = $1
         AND role NOT IN ('admin', 'bod', 'gm')
-        AND id != ?
+        AND id != $2
       `, [actor.department, actorId]);
     }
     return users.map(u => u.id);
@@ -133,11 +133,11 @@ export async function getUsersUnderAuthority(actorId: number): Promise<number[]>
 
   // Onsite Leader sees their team members
   if (actor.role === 'onsite_leader' && actor.team_id) {
-    const users = getAll<{ id: number }>(`
+    const users = await getAll<{ id: number }>(`
       SELECT id FROM users
-      WHERE team_id = ?
+      WHERE team_id = $1
       AND role IN ('user', 'approver')
-      AND id != ?
+      AND id != $2
     `, [actor.team_id, actorId]);
     return users.map(u => u.id);
   }
@@ -160,10 +160,10 @@ export function canManageTeams(user: UserPermissionInfo): boolean {
  * - BOD: all teams
  * - GM: teams in their department
  */
-export function getManageableTeams(actorId: number): TeamInfo[] {
-  const actor = getOne<UserPermissionInfo>(`
+export async function getManageableTeams(actorId: number): Promise<TeamInfo[]> {
+  const actor = await getOne<UserPermissionInfo>(`
     SELECT id, role, department, department_id, team_id
-    FROM users WHERE id = ?
+    FROM users WHERE id = $1
   `, [actorId]);
 
   if (!actor) {
@@ -171,27 +171,27 @@ export function getManageableTeams(actorId: number): TeamInfo[] {
   }
 
   if (actor.role === 'admin' || actor.role === 'bod') {
-    return getAll<TeamInfo>(`
+    return await getAll<TeamInfo>(`
       SELECT id, name, department_id, leader_id
-      FROM teams WHERE is_active = 1
+      FROM teams WHERE is_active = true
     `);
   }
 
   if (actor.role === 'gm') {
     if (actor.department_id) {
-      return getAll<TeamInfo>(`
+      return await getAll<TeamInfo>(`
         SELECT id, name, department_id, leader_id
-        FROM teams WHERE department_id = ? AND is_active = 1
+        FROM teams WHERE department_id = $1 AND is_active = true
       `, [actor.department_id]);
     }
     // Fallback: match by department name
-    const dept = getOne<{ id: number }>(`
-      SELECT id FROM departments WHERE name = ?
+    const dept = await getOne<{ id: number }>(`
+      SELECT id FROM departments WHERE name = $1
     `, [actor.department]);
     if (dept) {
-      return getAll<TeamInfo>(`
+      return await getAll<TeamInfo>(`
         SELECT id, name, department_id, leader_id
-        FROM teams WHERE department_id = ? AND is_active = 1
+        FROM teams WHERE department_id = $1 AND is_active = true
       `, [dept.id]);
     }
   }
@@ -202,16 +202,16 @@ export function getManageableTeams(actorId: number): TeamInfo[] {
 /**
  * Check if user can assign someone as onsite leader
  */
-export function canAssignOnsiteLeader(actor: UserPermissionInfo, targetUserId: number, teamId: number): boolean {
+export async function canAssignOnsiteLeader(actor: UserPermissionInfo, targetUserId: number, teamId: number): Promise<boolean> {
   // Only GM and above can assign onsite leaders
   if (!canManageTeams(actor)) {
     return false;
   }
 
   // Get team info
-  const team = getOne<TeamInfo>(`
+  const team = await getOne<TeamInfo>(`
     SELECT id, name, department_id, leader_id
-    FROM teams WHERE id = ?
+    FROM teams WHERE id = $1
   `, [teamId]);
 
   if (!team) {
@@ -229,8 +229,8 @@ export function canAssignOnsiteLeader(actor: UserPermissionInfo, targetUserId: n
       return team.department_id === actor.department_id;
     }
     // Fallback check
-    const dept = getOne<{ id: number }>(`
-      SELECT id FROM departments WHERE name = ?
+    const dept = await getOne<{ id: number }>(`
+      SELECT id FROM departments WHERE name = $1
     `, [actor.department]);
     return dept?.id === team.department_id;
   }

@@ -48,6 +48,8 @@ import {
   AccountBalance as AccountBalanceIcon,
   TrendingUp as TrendingUpIcon,
   BarChart as BarChartIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { getSystemById, SystemConfig } from '../config/systems';
@@ -104,6 +106,11 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
   const location = useLocation();
   const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(() => {
+    // Load drawer state from localStorage, default to open
+    const saved = localStorage.getItem('drawerOpen');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [favoritesAnchorEl, setFavoritesAnchorEl] = useState<null | HTMLElement>(null);
   const [favorites, setFavorites] = useState<PageFavorite[]>([]);
@@ -177,6 +184,13 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleDesktopDrawerToggle = () => {
+    const newState = !desktopOpen;
+    setDesktopOpen(newState);
+    // Save to localStorage
+    localStorage.setItem('drawerOpen', String(newState));
+  };
+
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -215,13 +229,10 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
           startIcon={<HomeIcon />}
           onClick={handleBackToPortal}
           size="small"
-          sx={{ mb: 1, color: 'text.secondary' }}
+          sx={{ color: 'text.secondary' }}
         >
           {t('common:backToPortal')}
         </Button>
-        <Typography variant="subtitle1" noWrap component="div" sx={{ fontWeight: 700 }}>
-          {system?.name || t('common:system')}
-        </Typography>
       </Toolbar>
       <Divider />
       <List>
@@ -254,6 +265,7 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
         }}
       >
         <Toolbar>
+          {/* Mobile menu toggle */}
           <IconButton
             color="inherit"
             edge="start"
@@ -262,6 +274,17 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
           >
             <MenuIcon />
           </IconButton>
+          {/* Desktop menu toggle */}
+          <Tooltip title={desktopOpen ? t('common:closeMenu') : t('common:openMenu')}>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleDesktopDrawerToggle}
+              sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}
+            >
+              {desktopOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+            </IconButton>
+          </Tooltip>
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
             {system && React.createElement(system.icon, { sx: { mr: 1 } })}
             <Typography variant="h6" noWrap component="div">
@@ -384,8 +407,9 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ width: { sm: desktopOpen ? drawerWidth : 0 }, flexShrink: { sm: 0 } }}
       >
+        {/* Mobile drawer - temporary */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -398,13 +422,21 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
         >
           {drawer}
         </Drawer>
+        {/* Desktop drawer - persistent (can be toggled) */}
         <Drawer
-          variant="permanent"
+          variant="persistent"
+          open={desktopOpen}
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              transition: (theme) => theme.transitions.create('width', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+            },
           }}
-          open
         >
           {drawer}
         </Drawer>
@@ -414,8 +446,15 @@ const Layout: React.FC<LayoutProps> = ({ systemId }) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: {
+            xs: '100%',
+            sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%'
+          },
           mt: 8,
+          transition: (theme) => theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         <Outlet />

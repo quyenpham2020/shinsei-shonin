@@ -132,18 +132,16 @@ const NewApplicationPage: React.FC = () => {
         const [types, depts, users] = await Promise.all([
           applicationTypeService.getAll(),
           departmentService.getAll(true), // Only active departments
-          userService.getAll(),
+          userService.getApprovers(),
         ]);
         setApplicationTypes(types);
         setDepartments(depts);
-        // Filter users who can be approvers: approver, gm, bod, admin
-        const approverList = users
-          .filter((u: any) => ['approver', 'gm', 'bod', 'admin'].includes(u.role))
-          .map((u: any) => ({
-            id: u.id,
-            employeeId: u.employee_id,
-            name: u.name,
-          }));
+        // Map approvers to the format expected by the form
+        const approverList = users.map((u: any) => ({
+          id: u.id,
+          employeeId: u.employeeId,
+          name: u.name,
+        }));
         setApprovers(approverList);
         if (types.length > 0 && !id) {
           const firstType = types[0];
