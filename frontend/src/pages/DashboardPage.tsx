@@ -104,7 +104,7 @@ const DashboardPage: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => navigate('/applications/new')}
+          onClick={() => navigate('/shinsei/applications/new')}
         >
           新規申請
         </Button>

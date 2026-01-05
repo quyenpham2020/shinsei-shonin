@@ -268,6 +268,57 @@ export const deleteTeam = async (req: Request, res: Response) => {
   }
 };
 
+// Bulk delete teams
+export const bulkDeleteTeams = async (req: Request, res: Response) => {
+  try {
+    const { ids } = req.body;
+    const user = (req as any).user;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Team IDs array is required' });
+    }
+
+    // Get actor's permission info
+    const actor = await getOne<UserPermissionInfo>(`
+      SELECT id, role, department, department_id, team_id
+      FROM users WHERE id = $1
+    `, [user.id]);
+
+    if (!actor || !canManageTeams(actor)) {
+      return res.status(403).json({ error: 'Insufficient permissions to delete teams' });
+    }
+
+    // Get all teams to be deleted
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+    const teams = await getAll<{ id: number; leader_id: number | null }>(`
+      SELECT id, leader_id FROM teams WHERE id IN (${placeholders})
+    `, ids);
+
+    if (teams.length === 0) {
+      return res.status(404).json({ error: 'No teams found with provided IDs' });
+    }
+
+    // Process each team deletion
+    for (const team of teams) {
+      // Remove team_id from all members
+      await runQuery(`UPDATE users SET team_id = NULL WHERE team_id = $1`, [team.id]);
+
+      // Remove onsite_leader role from the leader
+      if (team.leader_id) {
+        await runQuery(`UPDATE users SET role = 'user' WHERE id = $1 AND role = 'onsite_leader'`, [team.leader_id]);
+      }
+    }
+
+    // Delete all teams
+    await runQuery(`DELETE FROM teams WHERE id IN (${placeholders})`, ids);
+
+    res.json({ message: `${teams.length} teams deleted successfully` });
+  } catch (error) {
+    console.error('Error bulk deleting teams:', error);
+    res.status(500).json({ error: 'Failed to bulk delete teams' });
+  }
+};
+
 // Add member to team
 export const addTeamMember = async (req: Request, res: Response) => {
   try {

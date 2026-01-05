@@ -43,6 +43,11 @@ export const teamService = {
     await api.delete(`/teams/${id}`);
   },
 
+  // Bulk delete teams
+  async bulkDelete(ids: number[]): Promise<void> {
+    await api.post('/teams/bulk-delete', { ids });
+  },
+
   // Get team members
   async getMembers(teamId: number): Promise<TeamMember[]> {
     const response = await api.get(`/teams/${teamId}/members`);

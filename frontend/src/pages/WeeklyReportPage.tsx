@@ -303,9 +303,6 @@ const WeeklyReportPage: React.FC = () => {
           <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
             週次報告の提出をお願いします
           </Typography>
-          <Typography variant="body1" sx={{ fontSize: '18px', fontWeight: 600, color: '#d32f2f' }}>
-            Hãy gửi báo cáo tuần ở chỗ dễ nhìn trên web
-          </Typography>
           <Typography variant="body2" sx={{ mt: 1 }}>
             {comparisonData.currentWeek.weekStart} 週の報告がまだ提出されていません。下記のフォームから報告を入力してください。
           </Typography>

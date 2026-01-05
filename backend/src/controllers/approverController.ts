@@ -10,8 +10,8 @@ interface Approver {
   department_id: number;
   department_name: string;
   department_code: string;
-  approval_level: number;
-  max_amount: number | null;
+  application_type: string | null;
+  can_approve_amount: number | null;
   is_active: number;
   created_at: string;
 }
@@ -30,13 +30,13 @@ export const getApprovers = async (req: AuthRequest, res: Response): Promise<voi
         a.department_id,
         d.name as department_name,
         d.code as department_code,
-        a.approval_level,
-        a.max_amount,
+        a.application_type,
+        a.can_approve_amount,
         a.is_active,
         a.created_at
       FROM approvers a
       JOIN users u ON a.user_id = u.id
-      JOIN departments d ON a.department_id = d.id
+      LEFT JOIN departments d ON a.department_id = d.id
       WHERE 1=1
     `;
     const params: (string | number)[] = [];
@@ -77,13 +77,13 @@ export const getApprover = async (req: AuthRequest, res: Response): Promise<void
         a.department_id,
         d.name as department_name,
         d.code as department_code,
-        a.approval_level,
-        a.max_amount,
+        a.application_type,
+        a.can_approve_amount,
         a.is_active,
         a.created_at
       FROM approvers a
       JOIN users u ON a.user_id = u.id
-      JOIN departments d ON a.department_id = d.id
+      LEFT JOIN departments d ON a.department_id = d.id
       WHERE a.id = $1
     `, [Number(id)]);
 
@@ -102,7 +102,7 @@ export const getApprover = async (req: AuthRequest, res: Response): Promise<void
 // 承認者作成（ユーザーと部署の割り当て）
 export const createApprover = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { userId, departmentId, approvalLevel, maxAmount } = req.body;
+    const { userId, departmentId, applicationType, canApproveAmount } = req.body;
 
     // バリデーション
     if (!userId || !departmentId) {
@@ -139,9 +139,9 @@ export const createApprover = async (req: AuthRequest, res: Response): Promise<v
 
     // 承認者作成
     const result = await runQuery(`
-      INSERT INTO approvers (user_id, department_id, approval_level, max_amount)
+      INSERT INTO approvers (user_id, department_id, application_type, can_approve_amount)
       VALUES ($1, $2, $3, $4) RETURNING id
-    `, [userId, departmentId, approvalLevel || 1, maxAmount || null]);
+    `, [userId, departmentId, applicationType || null, canApproveAmount || null]);
 
     const newApprover = await getOne<Approver>(`
       SELECT
@@ -152,13 +152,13 @@ export const createApprover = async (req: AuthRequest, res: Response): Promise<v
         a.department_id,
         d.name as department_name,
         d.code as department_code,
-        a.approval_level,
-        a.max_amount,
+        a.application_type,
+        a.can_approve_amount,
         a.is_active,
         a.created_at
       FROM approvers a
       JOIN users u ON a.user_id = u.id
-      JOIN departments d ON a.department_id = d.id
+      LEFT JOIN departments d ON a.department_id = d.id
       WHERE a.id = $1
     `, [result.rows[0].id]);
 
@@ -173,7 +173,7 @@ export const createApprover = async (req: AuthRequest, res: Response): Promise<v
 export const updateApprover = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { approvalLevel, maxAmount, isActive } = req.body;
+    const { applicationType, canApproveAmount, isActive } = req.body;
 
     // 承認者設定の存在確認
     const existing = await getOne<{ id: number }>(`SELECT id FROM approvers WHERE id = $1`, [Number(id)]);
@@ -185,13 +185,13 @@ export const updateApprover = async (req: AuthRequest, res: Response): Promise<v
     // 承認者更新
     await runQuery(`
       UPDATE approvers
-      SET approval_level = COALESCE($1, approval_level),
-          max_amount = $2,
+      SET application_type = COALESCE($1, application_type),
+          can_approve_amount = $2,
           is_active = COALESCE($3, is_active)
       WHERE id = $4
     `, [
-      approvalLevel || null,
-      maxAmount !== undefined ? maxAmount : null,
+      applicationType || null,
+      canApproveAmount !== undefined ? canApproveAmount : null,
       isActive !== undefined ? (isActive ? true : false) : null,
       Number(id)
     ]);
@@ -205,13 +205,13 @@ export const updateApprover = async (req: AuthRequest, res: Response): Promise<v
         a.department_id,
         d.name as department_name,
         d.code as department_code,
-        a.approval_level,
-        a.max_amount,
+        a.application_type,
+        a.can_approve_amount,
         a.is_active,
         a.created_at
       FROM approvers a
       JOIN users u ON a.user_id = u.id
-      JOIN departments d ON a.department_id = d.id
+      LEFT JOIN departments d ON a.department_id = d.id
       WHERE a.id = $1
     `, [Number(id)]);
 
@@ -281,15 +281,15 @@ export const getApproverDepartments = async (req: AuthRequest, res: Response): P
       department_id: number;
       department_name: string;
       department_code: string;
-      approval_level: number;
-      max_amount: number | null;
+      application_type: string | null;
+      can_approve_amount: number | null;
     }>(`
       SELECT
         a.department_id,
         d.name as department_name,
         d.code as department_code,
-        a.approval_level,
-        a.max_amount
+        a.application_type,
+        a.can_approve_amount
       FROM approvers a
       JOIN departments d ON a.department_id = d.id
       WHERE a.user_id = $1 AND a.is_active = true

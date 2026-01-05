@@ -52,7 +52,24 @@
       "Bash(node test-my-access.js:*)",
       "Bash(node:*)",
       "Bash(cat:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -U postgres -d shinsei_shonin -c \"\\\\d approvers\")",
+      "Bash(ADMIN_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImVtcGxveWVlSWQiOiJhZG1pbiIsIm5hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW4iLCJkZXBhcnRtZW50IjoiZzciLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3Njc1Mjk3NzUsImV4cCI6MTc2NzYxNjE3NX0.DTCoIJjZNeOFARdZ6StOKw0pLU2aL-OpPSlXlV3hbpM\")",
+      "Bash(QUYET_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsImVtcGxveWVlSWQiOiJxdXlldCIsIm5hbWUiOiJxdXlldCIsImVtYWlsIjoicXV5ZXQiLCJkZXBhcnRtZW50IjoiZzciLCJyb2xlIjoidXNlciIsImlhdCI6MTc2NzUzMDA1NywiZXhwIjoxNzY3NjE2NDU3fQ.QLt18v7pXb2-7ootLa_MCMAy2fYVT3-P88E-1JN2TRQ\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImVtcGxveWVlSWQiOiJhZG1pbiIsIm5hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW4iLCJkZXBhcnRtZW50IjoiZzciLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3Njc1MzA1NDMsImV4cCI6MTc2NzYxNjk0M30.tUD6BoowalkuRS8idsnnUxBd6-GrtgSlCjcsGSzLxtg\")",
+      "Bash(QUYET_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsImVtcGxveWVlSWQiOiJxdXlldCIsIm5hbWUiOiJxdXlldCIsImVtYWlsIjoicXV5ZXQiLCJkZXBhcnRtZW50IjoiZzciLCJyb2xlIjoidXNlciIsImlhdCI6MTc2NzUzMDYyMywiZXhwIjoxNzY3NjE3MDIzfQ.ssty6ymaqomogowSx3bsMeowEk47AiPyDHrKAbH2HJ0\")",
+      "Bash(npm start)",
+      "Bash(ipconfig:*)",
+      "Bash(netsh advfirewall firewall:*)",
+      "Bash(where ngrok)",
+      "Bash(start /B ngrok http:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(ping:*)",
+      "Bash(powershell -Command \"\\(Invoke-RestMethod -Uri ''http://localhost:4040/api/tunnels''\\).tunnels[0].public_url\")",
+      "Bash(tasklist:*)",
+      "Bash(powershell:*)",
+      "Bash(start http://localhost:4040)"
     ]
   }
 }

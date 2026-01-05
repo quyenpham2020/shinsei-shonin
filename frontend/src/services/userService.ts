@@ -72,4 +72,9 @@ export const userService = {
   changePassword: async (id: number, newPassword: string): Promise<void> => {
     await api.put(`/users/${id}/password`, { newPassword });
   },
+
+  getApprovers: async (): Promise<User[]> => {
+    const response = await api.get<UserResponse[]>('/users/approvers');
+    return response.data.map(transformUser);
+  },
 };

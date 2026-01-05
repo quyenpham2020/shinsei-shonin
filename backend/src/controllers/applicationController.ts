@@ -158,13 +158,15 @@ export const getApplication = async (req: AuthRequest, res: Response): Promise<v
     `, [Number(id)]);
 
     // 補足申請（子申請）取得
-    const supplementaryApplications = await getAll<Application & { applicant_name: string }>(`
-      SELECT a.*, u.name as applicant_name
-      FROM applications a
-      LEFT JOIN users u ON a.applicant_id = u.id
-      WHERE a.parent_id = $1
-      ORDER BY a.created_at ASC
-    `, [Number(id)]);
+    // TODO: Add parent_id column to applications table to enable this feature
+    // const supplementaryApplications = await getAll<Application & { applicant_name: string }>(`
+    //   SELECT a.*, u.name as applicant_name
+    //   FROM applications a
+    //   LEFT JOIN users u ON a.applicant_id = u.id
+    //   WHERE a.parent_id = $1
+    //   ORDER BY a.created_at ASC
+    // `, [Number(id)]);
+    const supplementaryApplications: any[] = [];
 
     // 合計金額計算（親 + 全子申請）
     const parentAmount = application.amount || 0;

@@ -68,8 +68,10 @@ async function start() {
     // Initialize scheduler for Friday reminders
     initScheduler();
 
-    app.listen(config.port, () => {
-      console.log(`Server is running on port ${config.port}`);
+    const host = process.env.HOST || '0.0.0.0';
+    app.listen(config.port, host, () => {
+      console.log(`Server is running on ${host}:${config.port}`);
+      console.log(`Access from network: http://192.168.3.5:${config.port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

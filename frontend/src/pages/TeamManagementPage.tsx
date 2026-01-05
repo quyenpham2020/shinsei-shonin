@@ -40,7 +40,9 @@ import {
   Group as GroupIcon,
   PersonAdd as PersonAddIcon,
   PersonRemove as PersonRemoveIcon,
+  DeleteSweep as DeleteSweepIcon,
 } from '@mui/icons-material';
+import Checkbox from '@mui/material/Checkbox';
 import { teamService } from '../services/teamService';
 import { departmentService } from '../services/departmentService';
 import { userService } from '../services/userService';
@@ -70,6 +72,7 @@ const TeamManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<number[]>([]);
 
   // Dialog states
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -214,6 +217,49 @@ const TeamManagementPage: React.FC = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedTeamIds.length === 0) return;
+
+    const teamNames = teams
+      .filter(t => selectedTeamIds.includes(t.id))
+      .map(t => t.name)
+      .join('、');
+
+    if (!window.confirm(`以下のチームを削除してもよろしいですか？\n\n${teamNames}`)) return;
+
+    try {
+      await teamService.bulkDelete(selectedTeamIds);
+      setSuccess(`${selectedTeamIds.length}件のチームを削除しました`);
+      setSelectedTeamIds([]);
+      fetchData();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Error bulk deleting teams:', err);
+      setError('チームの一括削除に失敗しました');
+    }
+  };
+
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      setSelectedTeamIds(teams.map(t => t.id));
+    } else {
+      setSelectedTeamIds([]);
+    }
+  };
+
+  const handleSelectTeam = (teamId: number) => {
+    setSelectedTeamIds(prev => {
+      if (prev.includes(teamId)) {
+        return prev.filter(id => id !== teamId);
+      } else {
+        return [...prev, teamId];
+      }
+    });
+  };
+
+  const isAllSelected = teams.length > 0 && selectedTeamIds.length === teams.length;
+  const isIndeterminate = selectedTeamIds.length > 0 && selectedTeamIds.length < teams.length;
+
   const handleAddMember = async (userId: number) => {
     if (!selectedTeam) return;
     try {
@@ -288,13 +334,25 @@ const TeamManagementPage: React.FC = () => {
             部門内のチームを管理し、オンサイトリーダーを割り当てます
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
-        >
-          新規チーム作成
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {selectedTeamIds.length > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteSweepIcon />}
+              onClick={handleBulkDelete}
+            >
+              選択したチームを削除 ({selectedTeamIds.length})
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreate}
+          >
+            新規チーム作成
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -313,6 +371,14 @@ const TeamManagementPage: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={isAllSelected}
+                  indeterminate={isIndeterminate}
+                  onChange={handleSelectAll}
+                  color="primary"
+                />
+              </TableCell>
               <TableCell sx={{ fontWeight: 600 }}>チーム名</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>部署</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>リーダー</TableCell>
@@ -323,7 +389,18 @@ const TeamManagementPage: React.FC = () => {
           </TableHead>
           <TableBody>
             {teams.map((team) => (
-              <TableRow key={team.id}>
+              <TableRow
+                key={team.id}
+                selected={selectedTeamIds.includes(team.id)}
+                hover
+              >
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedTeamIds.includes(team.id)}
+                    onChange={() => handleSelectTeam(team.id)}
+                    color="primary"
+                  />
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <GroupIcon color="primary" />
@@ -373,7 +450,7 @@ const TeamManagementPage: React.FC = () => {
             ))}
             {teams.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     チームがありません。「新規チーム作成」から作成してください。
                   </Typography>

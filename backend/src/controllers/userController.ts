@@ -56,7 +56,7 @@ export const getApprovers = async (req: AuthRequest, res: Response): Promise<voi
     const approvers = await getAll(`
       SELECT id, employee_id, name, email, department
       FROM users
-      WHERE role IN ('approver', 'admin')
+      WHERE role IN ('approver', 'admin', 'gm', 'bod')
       ORDER BY name ASC
     `);
 
