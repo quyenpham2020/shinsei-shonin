@@ -44,6 +44,8 @@ import {
   DeleteSweep as DeleteSweepIcon,
   Settings as SettingsIcon,
   ViewColumn as ViewColumnIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
 } from '@mui/icons-material';
 import Checkbox from '@mui/material/Checkbox';
 import { teamService } from '../services/teamService';
@@ -83,6 +85,7 @@ const TeamManagementPage: React.FC = () => {
   const [openMembersDialog, setOpenMembersDialog] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [columnMenuAnchor, setColumnMenuAnchor] = useState<null | HTMLElement>(null);
+  const [fullScreen, setFullScreen] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -210,6 +213,9 @@ const TeamManagementPage: React.FC = () => {
 
   const handleOpenMembers = async (team: Team) => {
     setSelectedTeam(team);
+    // Clear previous state before opening dialog
+    setTeamMembers([]);
+    setAvailableMembers([]);
     setMembersLoading(true);
     setOpenMembersDialog(true);
     try {
@@ -225,6 +231,14 @@ const TeamManagementPage: React.FC = () => {
     } finally {
       setMembersLoading(false);
     }
+  };
+
+  const handleCloseMembersDialog = () => {
+    setOpenMembersDialog(false);
+    // Clear state when closing dialog to prevent stale data
+    setTeamMembers([]);
+    setAvailableMembers([]);
+    setSelectedTeam(null);
   };
 
   const handleCreate = async () => {
@@ -416,6 +430,11 @@ const TeamManagementPage: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
+          <Tooltip title={fullScreen ? "通常表示に戻す" : "全画面表示"}>
+            <IconButton onClick={() => setFullScreen(!fullScreen)}>
+              {fullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            </IconButton>
+          </Tooltip>
           <Tooltip title="列の表示設定">
             <IconButton onClick={(e) => setColumnMenuAnchor(e.currentTarget)}>
               <ViewColumnIcon />
@@ -485,125 +504,267 @@ const TeamManagementPage: React.FC = () => {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              {columnVisibility.checkbox && (
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={isAllSelected}
-                    indeterminate={isIndeterminate}
-                    onChange={handleSelectAll}
-                    color="primary"
-                  />
-                </TableCell>
-              )}
-              {columnVisibility.name && <TableCell sx={{ fontWeight: 600 }}>チーム名</TableCell>}
-              {columnVisibility.department && <TableCell sx={{ fontWeight: 600 }}>部署</TableCell>}
-              {columnVisibility.leader && <TableCell sx={{ fontWeight: 600 }}>オンサイトリーダー</TableCell>}
-              {columnVisibility.members && <TableCell sx={{ fontWeight: 600 }}>メンバー</TableCell>}
-              {columnVisibility.memberCount && <TableCell sx={{ fontWeight: 600 }}>メンバー数</TableCell>}
-              {columnVisibility.description && <TableCell sx={{ fontWeight: 600 }}>説明</TableCell>}
-              {columnVisibility.actions && <TableCell align="right" sx={{ fontWeight: 600 }}>操作</TableCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {teams.map((team) => (
-              <TableRow
-                key={team.id}
-                selected={selectedTeamIds.includes(team.id)}
-                hover
-              >
+      {/* Team Table */}
+      {fullScreen ? (
+        <Dialog
+          open={fullScreen}
+          onClose={() => setFullScreen(false)}
+          fullScreen
+          PaperProps={{
+            sx: { backgroundColor: 'background.default' }
+          }}
+        >
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h5" fontWeight={600}>
+                チーム管理 - 全画面表示
+              </Typography>
+              <IconButton onClick={() => setFullScreen(false)}>
+                <FullscreenExitIcon />
+              </IconButton>
+            </Box>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {columnVisibility.checkbox && (
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={isAllSelected}
+                          indeterminate={isIndeterminate}
+                          onChange={handleSelectAll}
+                          color="primary"
+                        />
+                      </TableCell>
+                    )}
+                    {columnVisibility.name && <TableCell sx={{ fontWeight: 600 }}>チーム名</TableCell>}
+                    {columnVisibility.department && <TableCell sx={{ fontWeight: 600 }}>部署</TableCell>}
+                    {columnVisibility.leader && <TableCell sx={{ fontWeight: 600 }}>オンサイトリーダー</TableCell>}
+                    {columnVisibility.members && <TableCell sx={{ fontWeight: 600 }}>メンバー</TableCell>}
+                    {columnVisibility.memberCount && <TableCell sx={{ fontWeight: 600 }}>メンバー数</TableCell>}
+                    {columnVisibility.description && <TableCell sx={{ fontWeight: 600 }}>説明</TableCell>}
+                    {columnVisibility.actions && <TableCell align="right" sx={{ fontWeight: 600 }}>操作</TableCell>}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {teams.map((team) => (
+                    <TableRow
+                      key={team.id}
+                      selected={selectedTeamIds.includes(team.id)}
+                      hover
+                    >
+                      {columnVisibility.checkbox && (
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedTeamIds.includes(team.id)}
+                            onChange={() => handleSelectTeam(team.id)}
+                            color="primary"
+                          />
+                        </TableCell>
+                      )}
+                      {columnVisibility.name && (
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <GroupIcon color="primary" />
+                            <Typography fontWeight={500}>{team.name}</Typography>
+                          </Box>
+                        </TableCell>
+                      )}
+                      {columnVisibility.department && <TableCell>{team.department_name}</TableCell>}
+                      {columnVisibility.leader && (
+                        <TableCell>
+                          {team.leader_name ? (
+                            <Chip
+                              label={team.leader_name}
+                              size="small"
+                              color="secondary"
+                            />
+                          ) : (
+                            <Typography color="text.secondary" variant="body2">
+                              未設定
+                            </Typography>
+                          )}
+                        </TableCell>
+                      )}
+                      {columnVisibility.members && (
+                        <TableCell>
+                          <Button
+                            size="small"
+                            startIcon={<GroupIcon />}
+                            onClick={() => handleOpenMembers(team)}
+                          >
+                            表示 ({team.member_count}名)
+                          </Button>
+                        </TableCell>
+                      )}
+                      {columnVisibility.memberCount && (
+                        <TableCell>
+                          <Chip label={`${team.member_count}名`} size="small" />
+                        </TableCell>
+                      )}
+                      {columnVisibility.description && (
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {team.description || '-'}
+                          </Typography>
+                        </TableCell>
+                      )}
+                      {columnVisibility.actions && (
+                        <TableCell align="right">
+                          <Tooltip title={t('common:tooltips.manageMembers')}>
+                            <IconButton onClick={() => handleOpenMembers(team)} color="primary">
+                              <PersonAddIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={t('common:tooltips.edit')}>
+                            <IconButton onClick={() => handleOpenEdit(team)} color="primary">
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={t('common:tooltips.delete')}>
+                            <IconButton onClick={() => handleDelete(team)} color="error">
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                  {teams.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          チームがありません。「新規チーム作成」から作成してください。
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        </Dialog>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
                 {columnVisibility.checkbox && (
                   <TableCell padding="checkbox">
                     <Checkbox
-                      checked={selectedTeamIds.includes(team.id)}
-                      onChange={() => handleSelectTeam(team.id)}
+                      checked={isAllSelected}
+                      indeterminate={isIndeterminate}
+                      onChange={handleSelectAll}
                       color="primary"
                     />
                   </TableCell>
                 )}
-                {columnVisibility.name && (
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <GroupIcon color="primary" />
-                      <Typography fontWeight={500}>{team.name}</Typography>
-                    </Box>
-                  </TableCell>
-                )}
-                {columnVisibility.department && <TableCell>{team.department_name}</TableCell>}
-                {columnVisibility.leader && (
-                  <TableCell>
-                    {team.leader_name ? (
-                      <Chip
-                        label={team.leader_name}
-                        size="small"
-                        color="secondary"
+                {columnVisibility.name && <TableCell sx={{ fontWeight: 600 }}>チーム名</TableCell>}
+                {columnVisibility.department && <TableCell sx={{ fontWeight: 600 }}>部署</TableCell>}
+                {columnVisibility.leader && <TableCell sx={{ fontWeight: 600 }}>オンサイトリーダー</TableCell>}
+                {columnVisibility.members && <TableCell sx={{ fontWeight: 600 }}>メンバー</TableCell>}
+                {columnVisibility.memberCount && <TableCell sx={{ fontWeight: 600 }}>メンバー数</TableCell>}
+                {columnVisibility.description && <TableCell sx={{ fontWeight: 600 }}>説明</TableCell>}
+                {columnVisibility.actions && <TableCell align="right" sx={{ fontWeight: 600 }}>操作</TableCell>}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {teams.map((team) => (
+                <TableRow
+                  key={team.id}
+                  selected={selectedTeamIds.includes(team.id)}
+                  hover
+                >
+                  {columnVisibility.checkbox && (
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedTeamIds.includes(team.id)}
+                        onChange={() => handleSelectTeam(team.id)}
+                        color="primary"
                       />
-                    ) : (
-                      <Typography color="text.secondary" variant="body2">
-                        未設定
+                    </TableCell>
+                  )}
+                  {columnVisibility.name && (
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <GroupIcon color="primary" />
+                        <Typography fontWeight={500}>{team.name}</Typography>
+                      </Box>
+                    </TableCell>
+                  )}
+                  {columnVisibility.department && <TableCell>{team.department_name}</TableCell>}
+                  {columnVisibility.leader && (
+                    <TableCell>
+                      {team.leader_name ? (
+                        <Chip
+                          label={team.leader_name}
+                          size="small"
+                          color="secondary"
+                        />
+                      ) : (
+                        <Typography color="text.secondary" variant="body2">
+                          未設定
+                        </Typography>
+                      )}
+                    </TableCell>
+                  )}
+                  {columnVisibility.members && (
+                    <TableCell>
+                      <Button
+                        size="small"
+                        startIcon={<GroupIcon />}
+                        onClick={() => handleOpenMembers(team)}
+                      >
+                        表示 ({team.member_count}名)
+                      </Button>
+                    </TableCell>
+                  )}
+                  {columnVisibility.memberCount && (
+                    <TableCell>
+                      <Chip label={`${team.member_count}名`} size="small" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.description && (
+                    <TableCell sx={{ maxWidth: 100 }}>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {team.description || '-'}
                       </Typography>
-                    )}
-                  </TableCell>
-                )}
-                {columnVisibility.members && (
-                  <TableCell>
-                    <Button
-                      size="small"
-                      startIcon={<GroupIcon />}
-                      onClick={() => handleOpenMembers(team)}
-                    >
-                      表示 ({team.member_count}名)
-                    </Button>
-                  </TableCell>
-                )}
-                {columnVisibility.memberCount && (
-                  <TableCell>
-                    <Chip label={`${team.member_count}名`} size="small" />
-                  </TableCell>
-                )}
-                {columnVisibility.description && (
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
-                      {team.description || '-'}
+                    </TableCell>
+                  )}
+                  {columnVisibility.actions && (
+                    <TableCell align="right">
+                      <Tooltip title={t('common:tooltips.manageMembers')}>
+                        <IconButton onClick={() => handleOpenMembers(team)} color="primary">
+                          <PersonAddIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={t('common:tooltips.edit')}>
+                        <IconButton onClick={() => handleOpenEdit(team)} color="primary">
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={t('common:tooltips.delete')}>
+                        <IconButton onClick={() => handleDelete(team)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+              {teams.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <Typography color="text.secondary">
+                      チームがありません。「新規チーム作成」から作成してください。
                     </Typography>
                   </TableCell>
-                )}
-                {columnVisibility.actions && (
-                  <TableCell align="right">
-                    <Tooltip title={t('common:tooltips.manageMembers')}>
-                      <IconButton onClick={() => handleOpenMembers(team)} color="primary">
-                        <PersonAddIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={t('common:tooltips.edit')}>
-                      <IconButton onClick={() => handleOpenEdit(team)} color="primary">
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={t('common:tooltips.delete')}>
-                      <IconButton onClick={() => handleDelete(team)} color="error">
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-            {teams.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">
-                    チームがありません。「新規チーム作成」から作成してください。
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Create Team Dialog */}
       <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="md" fullWidth>
@@ -742,7 +903,7 @@ const TeamManagementPage: React.FC = () => {
       </Dialog>
 
       {/* Members Management Dialog */}
-      <Dialog open={openMembersDialog} onClose={() => setOpenMembersDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={openMembersDialog} onClose={handleCloseMembersDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {selectedTeam?.name} - メンバー管理
         </DialogTitle>
@@ -841,7 +1002,7 @@ const TeamManagementPage: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenMembersDialog(false)}>閉じる</Button>
+          <Button onClick={handleCloseMembersDialog}>閉じる</Button>
         </DialogActions>
       </Dialog>
     </Container>
