@@ -27,12 +27,18 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  InputAdornment,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
   FileDownload as FileDownloadIcon,
+  ExpandMore as ExpandMoreIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import weeklyReportService, {
@@ -84,6 +90,8 @@ const WeeklyReportPage: React.FC = () => {
 
   // 3 weeks members data
   const [members3WeeksData, setMembers3WeeksData] = useState<Members3WeeksData | null>(null);
+  const [numWeeks, setNumWeeks] = useState(3);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Member detail modal
   const [selectedMember, setSelectedMember] = useState<MemberWith3WeeksReports | null>(null);
@@ -98,7 +106,12 @@ const WeeklyReportPage: React.FC = () => {
   const [exportEndDate, setExportEndDate] = useState('');
   const [exporting, setExporting] = useState(false);
 
-  const isLeader = user?.role === 'approver' || user?.role === 'admin';
+  // Group and search filters
+  const [groupBy, setGroupBy] = useState<'none' | 'department' | 'team' | 'department_team'>('none');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Roles that can view member list: onsite_leader, gm, bod, admin, approver
+  const isLeader = ['onsite_leader', 'gm', 'bod', 'admin', 'approver'].includes(user?.role || '');
   const canExport = ['onsite_leader', 'gm', 'bod', 'admin'].includes(user?.role || '');
 
   useEffect(() => {
@@ -136,12 +149,26 @@ const WeeklyReportPage: React.FC = () => {
     }
   };
 
-  const loadMembers3Weeks = async () => {
+  const loadMembers3Weeks = async (weeks?: number) => {
     try {
-      const data = await weeklyReportService.getMembersReportsLast3Weeks();
+      const data = await weeklyReportService.getMembersReportsLast3Weeks(weeks);
       setMembers3WeeksData(data);
     } catch (error) {
       console.error('Failed to load members 3 weeks data:', error);
+    }
+  };
+
+  const loadMoreWeeks = async () => {
+    setLoadingMore(true);
+    try {
+      const newNumWeeks = numWeeks + 4; // Load 4 more weeks at a time
+      await loadMembers3Weeks(newNumWeeks);
+      setNumWeeks(newNumWeeks);
+    } catch (error) {
+      console.error('Failed to load more weeks:', error);
+      setErrorMessage('過去データの読み込みに失敗しました');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -219,6 +246,23 @@ const WeeklyReportPage: React.FC = () => {
     }
   };
 
+  // Auto-numbering function for content formatting
+  const autoNumberContent = (text: string): string => {
+    if (!text || !text.trim()) return text;
+
+    // Split by lines and filter empty lines
+    const lines = text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    // Auto-number each line
+    return lines.map((line, index) => {
+      // Remove existing numbering patterns (a., 1., bb., etc.)
+      const cleanedLine = line.replace(/^[a-z]+\.|^\d+\.|^[A-Z]+\./, '').trim();
+      return `${index + 1}. ${cleanedLine}`;
+    }).join('\n');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) {
@@ -228,13 +272,28 @@ const WeeklyReportPage: React.FC = () => {
 
     setLoading(true);
     try {
+      // Auto-format content with numbering before saving
+      const formattedContent = autoNumberContent(content);
+      const formattedAchievements = achievements ? autoNumberContent(achievements) : undefined;
+      const formattedChallenges = challenges ? autoNumberContent(challenges) : undefined;
+      const formattedNextWeekPlan = nextWeekPlan ? autoNumberContent(nextWeekPlan) : undefined;
+      const formattedOverview = overview ? autoNumberContent(overview) : undefined;
+
       await weeklyReportService.createOrUpdateReport({
-        content,
-        achievements: achievements || undefined,
-        challenges: challenges || undefined,
-        nextWeekPlan: nextWeekPlan || undefined,
-        overview: overview || undefined,
+        content: formattedContent,
+        achievements: formattedAchievements,
+        challenges: formattedChallenges,
+        nextWeekPlan: formattedNextWeekPlan,
+        overview: formattedOverview,
       });
+
+      // Update local state with formatted content
+      setContent(formattedContent);
+      if (formattedAchievements) setAchievements(formattedAchievements);
+      if (formattedChallenges) setChallenges(formattedChallenges);
+      if (formattedNextWeekPlan) setNextWeekPlan(formattedNextWeekPlan);
+      if (formattedOverview) setOverview(formattedOverview);
+
       setSuccessMessage('週次報告を保存しました');
       setIsPreFilled(false);
       loadComparisonData();
@@ -253,10 +312,77 @@ const WeeklyReportPage: React.FC = () => {
   };
 
   // Calculate submission stats for each week
-  const getWeekStats = (weekStart: string) => {
-    if (!members3WeeksData) return { submitted: 0, total: 0 };
-    const submitted = members3WeeksData.members.filter(m => m.reports[weekStart] !== null).length;
-    return { submitted, total: members3WeeksData.members.length };
+  const getWeekStats = (weekStart: string, members?: MemberWith3WeeksReports[]) => {
+    const membersList = members || members3WeeksData?.members || [];
+    const submitted = membersList.filter(m => m.reports[weekStart] !== null).length;
+    return { submitted, total: membersList.length };
+  };
+
+  // Filter and group members
+  const getFilteredAndGroupedMembers = () => {
+    if (!members3WeeksData) return [];
+
+    // Filter by search query
+    let filtered = members3WeeksData.members.filter(member => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        member.name.toLowerCase().includes(query) ||
+        member.employee_id.toLowerCase().includes(query) ||
+        member.department.toLowerCase().includes(query) ||
+        (member.team && member.team.toLowerCase().includes(query))
+      );
+    });
+
+    // Group if needed
+    if (groupBy === 'none') {
+      return [{ groupName: null, members: filtered, subGroups: null }];
+    }
+
+    if (groupBy === 'department_team') {
+      // Two-level grouping: Department -> Team
+      const deptGroups: { [dept: string]: { [team: string]: MemberWith3WeeksReports[] } } = {};
+
+      filtered.forEach(member => {
+        const dept = member.department;
+        const team = member.team || '未割当';
+
+        if (!deptGroups[dept]) {
+          deptGroups[dept] = {};
+        }
+        if (!deptGroups[dept][team]) {
+          deptGroups[dept][team] = [];
+        }
+        deptGroups[dept][team].push(member);
+      });
+
+      return Object.entries(deptGroups)
+        .sort(([a], [b]) => a.localeCompare(b, 'ja'))
+        .map(([deptName, teams]) => ({
+          groupName: deptName,
+          members: [],
+          subGroups: Object.entries(teams)
+            .sort(([a], [b]) => a.localeCompare(b, 'ja'))
+            .map(([teamName, members]) => ({
+              groupName: teamName,
+              members: members,
+            })),
+        }));
+    }
+
+    // Single-level grouping
+    const groups: { [key: string]: MemberWith3WeeksReports[] } = {};
+    filtered.forEach(member => {
+      const key = groupBy === 'department' ? member.department : (member.team || '未割当');
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(member);
+    });
+
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b, 'ja'))
+      .map(([groupName, members]) => ({ groupName, members, subGroups: null }));
   };
 
   return (
@@ -478,6 +604,43 @@ const WeeklyReportPage: React.FC = () => {
                   メンバー週次報告一覧（直近3週間）
                 </Typography>
 
+                {/* Search and Group Controls */}
+                <Box sx={{ mb: 3 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="社員番号、氏名、部署、チームで検索"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>グループ化</InputLabel>
+                        <Select
+                          value={groupBy}
+                          label="グループ化"
+                          onChange={(e) => setGroupBy(e.target.value as 'none' | 'department' | 'team' | 'department_team')}
+                        >
+                          <MenuItem value="none">なし</MenuItem>
+                          <MenuItem value="department">部署</MenuItem>
+                          <MenuItem value="team">チーム</MenuItem>
+                          <MenuItem value="department_team">部署 → チーム</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </Box>
+
                 {/* Export Section */}
                 {canExport && (
                   <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
@@ -546,83 +709,181 @@ const WeeklyReportPage: React.FC = () => {
                   </Paper>
                 )}
 
-                <TableContainer component={Paper} sx={{ mb: 2 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>社員番号</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>氏名</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>部門</TableCell>
-                        {members3WeeksData.weeks.map((week, index) => {
-                          const stats = getWeekStats(week.weekStart);
-                          return (
-                            <TableCell
-                              key={week.weekStart}
-                              align="center"
-                              sx={{ fontWeight: 'bold', minWidth: 120 }}
-                            >
-                              <Box>
-                                {formatWeekDate(week.weekStart)} ~ {formatWeekDate(week.weekEnd)}
-                                {index === 0 && ' (今週)'}
-                              </Box>
-                              <Chip
-                                size="small"
-                                label={`${stats.submitted}/${stats.total}`}
-                                color={stats.submitted === stats.total ? 'success' : 'warning'}
-                                sx={{ mt: 0.5 }}
-                              />
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {members3WeeksData.members.map((member) => (
-                        <TableRow
-                          key={member.id}
-                          hover
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => handleMemberClick(member)}
-                        >
-                          <TableCell>{member.employee_id}</TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <PersonIcon fontSize="small" color="action" />
-                              {member.name}
-                            </Box>
-                          </TableCell>
-                          <TableCell>{member.department}</TableCell>
-                          {members3WeeksData.weeks.map((week) => {
-                            const report = member.reports[week.weekStart];
-                            return (
-                              <TableCell key={week.weekStart} align="center">
-                                {report ? (
+                {/* Render grouped members */}
+                {getFilteredAndGroupedMembers().map((group, groupIndex) => {
+                  const renderTable = (members: MemberWith3WeeksReports[], hideColumns?: { department?: boolean; team?: boolean }) => (
+                    <TableContainer component={Paper} sx={{ mb: 2 }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>社員番号</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>氏名</TableCell>
+                            {!hideColumns?.department && (
+                              <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>部門</TableCell>
+                            )}
+                            {!hideColumns?.team && groupBy === 'none' && (
+                              <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>チーム</TableCell>
+                            )}
+                            {members3WeeksData.weeks.map((week, index) => {
+                              const stats = getWeekStats(week.weekStart, members);
+                              return (
+                                <TableCell
+                                  key={week.weekStart}
+                                  align="center"
+                                  sx={{ fontWeight: 'bold', minWidth: 120 }}
+                                >
+                                  <Box>
+                                    {formatWeekDate(week.weekStart)} ~ {formatWeekDate(week.weekEnd)}
+                                    {index === 0 && ' (今週)'}
+                                  </Box>
                                   <Chip
-                                    icon={<CheckCircleIcon />}
-                                    label="提出済"
-                                    color="success"
                                     size="small"
+                                    label={`${stats.submitted}/${stats.total}`}
+                                    color={stats.submitted === stats.total ? 'success' : 'warning'}
+                                    sx={{ mt: 0.5 }}
                                   />
-                                ) : (
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {members.map((member) => (
+                            <TableRow
+                              key={member.id}
+                              hover
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => handleMemberClick(member)}
+                            >
+                              <TableCell>{member.employee_id}</TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <PersonIcon fontSize="small" color="action" />
+                                  {member.name}
+                                </Box>
+                              </TableCell>
+                              {!hideColumns?.department && (
+                                <TableCell>{member.department}</TableCell>
+                              )}
+                              {!hideColumns?.team && groupBy === 'none' && (
+                                <TableCell>{member.team || '-'}</TableCell>
+                              )}
+                              {members3WeeksData.weeks.map((week) => {
+                                const report = member.reports[week.weekStart];
+                                return (
+                                  <TableCell key={week.weekStart} align="center">
+                                    {report ? (
+                                      <Chip
+                                        icon={<CheckCircleIcon />}
+                                        label="提出済"
+                                        color="success"
+                                        size="small"
+                                      />
+                                    ) : (
+                                      <Chip
+                                        icon={<CancelIcon />}
+                                        label="未提出"
+                                        color="error"
+                                        size="small"
+                                        variant="outlined"
+                                      />
+                                    )}
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  );
+
+                  if (group.groupName === null) {
+                    // No grouping
+                    return <Box key={groupIndex}>{renderTable(group.members)}</Box>;
+                  }
+
+                  // Two-level grouping: Department -> Team
+                  if (group.subGroups && group.subGroups.length > 0) {
+                    const totalMembers = group.subGroups.reduce((sum, subGroup) => sum + subGroup.members.length, 0);
+                    return (
+                      <Accordion key={group.groupName} defaultExpanded>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                            部署: {group.groupName}
+                            <Chip
+                              label={`${totalMembers}人`}
+                              size="small"
+                              sx={{ ml: 2 }}
+                              color="primary"
+                              variant="outlined"
+                            />
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          {group.subGroups.map((subGroup) => (
+                            <Accordion key={`${group.groupName}-${subGroup.groupName}`} defaultExpanded>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: 'grey.50' }}>
+                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                                  チーム: {subGroup.groupName}
                                   <Chip
-                                    icon={<CancelIcon />}
-                                    label="未提出"
-                                    color="error"
+                                    label={`${subGroup.members.length}人`}
                                     size="small"
+                                    sx={{ ml: 2 }}
+                                    color="secondary"
                                     variant="outlined"
                                   />
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <Typography variant="body2" color="text.secondary">
+                                </Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                {renderTable(subGroup.members, { department: true, team: true })}
+                              </AccordionDetails>
+                            </Accordion>
+                          ))}
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  }
+
+                  // Single-level grouping (department or team only)
+                  return (
+                    <Accordion key={group.groupName} defaultExpanded>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                          {groupBy === 'department' ? '部署: ' : 'チーム: '}
+                          {group.groupName}
+                          <Chip
+                            label={`${group.members.length}人`}
+                            size="small"
+                            sx={{ ml: 2 }}
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        {renderTable(group.members, groupBy === 'department' ? { department: true } : { team: true })}
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })}
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   ※ メンバーをクリックすると詳細な報告内容を確認できます
                 </Typography>
+
+                {/* Load More Button - Only for GM/BOD/Admin */}
+                {members3WeeksData.canLoadMore && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={loadMoreWeeks}
+                      disabled={loadingMore}
+                      startIcon={loadingMore && <CircularProgress size={20} />}
+                    >
+                      {loadingMore ? '読み込み中...' : '過去データを読み込む（+4週間）'}
+                    </Button>
+                  </Box>
+                )}
               </>
             ) : (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>

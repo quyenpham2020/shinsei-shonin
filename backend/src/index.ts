@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { config } from './config/env';
 import { initDatabase, initializeSchema } from './config/database';
 import { i18nMiddleware } from './middlewares/i18n';
@@ -22,6 +23,8 @@ import settingsRoutes from './routes/settings';
 import customerRoutes from './routes/customers';
 import revenueRoutes from './routes/revenue';
 import seedRoutes from './routes/seed';
+import auditLogRoutes from './routes/auditLogs';
+import newsfeedRoutes from './routes/newsfeed';
 import { initScheduler } from './services/scheduler';
 
 const app = express();
@@ -30,6 +33,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(i18nMiddleware);
+
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -49,6 +55,8 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api/audit', auditLogRoutes);
+app.use('/api/newsfeed', newsfeedRoutes);
 app.use('/api', seedRoutes);
 
 // Health check

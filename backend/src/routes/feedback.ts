@@ -7,6 +7,7 @@ import {
   deleteFeedback,
 } from '../controllers/feedbackController';
 import { authenticateToken } from '../middlewares/auth';
+import { auditLog } from '../middlewares/auditLog';
 
 const router = Router();
 
@@ -20,12 +21,12 @@ router.get('/', getAllFeedback);
 router.get('/:id', getFeedback);
 
 // Create new feedback
-router.post('/', createFeedback);
+router.post('/', auditLog('create', 'feedback'), createFeedback);
 
 // Update feedback (admin only - for responding)
-router.put('/:id', updateFeedback);
+router.put('/:id', auditLog('respond', 'feedback'), updateFeedback);
 
 // Delete feedback (admin only)
-router.delete('/:id', deleteFeedback);
+router.delete('/:id', auditLog('delete', 'feedback'), deleteFeedback);
 
 export default router;

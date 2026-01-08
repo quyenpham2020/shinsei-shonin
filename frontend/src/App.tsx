@@ -28,6 +28,8 @@ import SystemSettingsPage from './pages/SystemSettingsPage';
 import CustomerListPage from './pages/CustomerListPage';
 import RevenueManagementPage from './pages/RevenueManagementPage';
 import RevenueStatsPage from './pages/RevenueStatsPage';
+import AuditLogsPage from './pages/AuditLogsPage';
+import NewsfeedPage from './pages/NewsfeedPage';
 import ForcePasswordChangeDialog from './components/ForcePasswordChangeDialog';
 import { CircularProgress, Box } from '@mui/material';
 
@@ -182,6 +184,20 @@ const AppRoutes: React.FC = () => {
         <Route index element={<WeeklyReportPage />} />
       </Route>
 
+      {/* ニュースフィード */}
+      <Route
+        path="/newsfeed"
+        element={
+          <PrivateRoute>
+            <Layout systemId="newsfeed" />
+          </PrivateRoute>
+        }
+      >
+        <Route index element={<NewsfeedPage />} />
+        <Route path="knowhow" element={<NewsfeedPage category="knowhow" />} />
+        <Route path="tips" element={<NewsfeedPage category="tip" />} />
+      </Route>
+
       {/* マスタ管理システム */}
       <Route
         path="/master"
@@ -202,6 +218,7 @@ const AppRoutes: React.FC = () => {
         <Route path="customers" element={<CustomerListPage />} />
         <Route path="revenue" element={<RevenueManagementPage />} />
         <Route path="revenue-stats" element={<RevenueStatsPage />} />
+        <Route path="audit-logs" element={<AuditLogsPage />} />
       </Route>
 
       {/* Shared routes */}

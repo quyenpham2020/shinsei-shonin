@@ -1,6 +1,7 @@
 import express from 'express';
 import { getAllUsersWithAccess, bulkUpdateAccess, getMyAccess } from '../controllers/systemAccessController';
 import { authMiddleware } from '../middlewares/auth';
+import { auditLog } from '../middlewares/auditLog';
 
 const router = express.Router();
 
@@ -14,6 +15,6 @@ router.get('/my-access', getMyAccess);
 router.get('/users', getAllUsersWithAccess);
 
 // POST /api/system-access/bulk-update - Bulk update system access
-router.post('/bulk-update', bulkUpdateAccess);
+router.post('/bulk-update', auditLog('update_access', 'system_access'), bulkUpdateAccess);
 
 export default router;

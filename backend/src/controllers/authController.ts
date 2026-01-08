@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getOne } from '../config/database';
 import { config } from '../config/env';
 import { AuthRequest } from '../middlewares/auth';
+import { logLogin } from '../services/auditService';
 
 interface User {
   id: number;
@@ -28,6 +29,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const user = await getOne<User>('SELECT * FROM users WHERE LOWER(employee_id) = LOWER($1)', [employeeId]);
 
     if (!user) {
+      // Log failed login attempt (no user ID for non-existent users)
+      await logLogin({
+        userId: null as any,
+        employeeId,
+        username: employeeId,
+        status: 'failed',
+        failureReason: 'User not found',
+        req,
+      });
+
       res.status(401).json({ message: req.__('errors.invalidCredentials') });
       return;
     }
@@ -35,9 +46,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
+      // Log failed login attempt
+      await logLogin({
+        userId: user.id,
+        employeeId: user.employee_id,
+        username: user.name,
+        status: 'failed',
+        failureReason: 'Invalid password',
+        req,
+      });
+
       res.status(401).json({ message: req.__('errors.invalidCredentials') });
       return;
     }
+
+    // Log successful login
+    await logLogin({
+      userId: user.id,
+      employeeId: user.employee_id,
+      username: user.name,
+      status: 'success',
+      req,
+    });
 
     const token = jwt.sign(
       {

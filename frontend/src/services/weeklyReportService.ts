@@ -87,12 +87,14 @@ export interface MemberWith3WeeksReports {
   name: string;
   email: string;
   department: string;
+  team: string | null;
   reports: { [weekStart: string]: MemberReportSummary | null };
 }
 
 export interface Members3WeeksData {
   weeks: WeekInfo[];
   members: MemberWith3WeeksReports[];
+  canLoadMore: boolean;
 }
 
 export interface MemberDetailData {
@@ -169,8 +171,9 @@ export const weeklyReportService = {
     return response.data;
   },
 
-  getMembersReportsLast3Weeks: async (): Promise<Members3WeeksData> => {
-    const response = await api.get('/weekly-reports/members-3weeks');
+  getMembersReportsLast3Weeks: async (weeks?: number): Promise<Members3WeeksData> => {
+    const params = weeks ? `?weeks=${weeks}` : '';
+    const response = await api.get('/weekly-reports/members-3weeks' + params);
     return response.data;
   },
 

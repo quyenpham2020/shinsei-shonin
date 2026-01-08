@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getOne, runQuery } from '../config/database';
 import { AuthRequest } from '../middlewares/auth';
+import { logPasswordChange } from '../services/auditService';
 
 interface User {
   id: number;
@@ -128,6 +129,15 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       [hashedPassword, user.id]
     );
 
+    // Log password reset
+    await logPasswordChange({
+      userId: user.id,
+      employeeId: user.employee_id,
+      username: user.name,
+      changeType: 'reset',
+      req,
+    });
+
     res.json({ message: 'パスワードが正常にリセットされました' });
   } catch (error) {
     console.error('Password reset error:', error);
@@ -186,6 +196,15 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
       [hashedPassword, user.id]
     );
 
+    // Log password change
+    await logPasswordChange({
+      userId: user.id,
+      employeeId: user.employeeId,
+      username: user.name,
+      changeType: 'change',
+      req,
+    });
+
     res.json({ message: 'パスワードが正常に変更されました' });
   } catch (error) {
     console.error('Password change error:', error);
@@ -236,6 +255,16 @@ export const forceChangePassword = async (req: AuthRequest, res: Response): Prom
        WHERE id = $2`,
       [hashedPassword, user.id]
     );
+
+    // Log forced password change
+    await logPasswordChange({
+      userId: user.id,
+      employeeId: user.employeeId,
+      username: user.name,
+      changeType: 'force_reset',
+      isForced: true,
+      req,
+    });
 
     res.json({ message: 'パスワードが正常に変更されました' });
   } catch (error) {

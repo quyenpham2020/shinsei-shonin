@@ -8,6 +8,7 @@ import {
   deleteSetting,
 } from '../controllers/settingsController';
 import { authenticateToken, requireRole } from '../middlewares/auth';
+import { auditLog } from '../middlewares/auditLog';
 
 const router = Router();
 
@@ -25,12 +26,12 @@ router.get('/', getAllSettings);
 router.get('/:key', getSetting);
 
 // Update setting
-router.put('/:key', updateSetting);
+router.put('/:key', auditLog('update', 'system_setting'), updateSetting);
 
 // Create new setting
-router.post('/', createSetting);
+router.post('/', auditLog('create', 'system_setting'), createSetting);
 
 // Delete setting
-router.delete('/:key', deleteSetting);
+router.delete('/:key', auditLog('delete', 'system_setting'), deleteSetting);
 
 export default router;

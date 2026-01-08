@@ -32,6 +32,7 @@ import {
   ListItemSecondaryAction,
   Divider,
   Autocomplete,
+  Menu,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,6 +42,8 @@ import {
   PersonAdd as PersonAddIcon,
   PersonRemove as PersonRemoveIcon,
   DeleteSweep as DeleteSweepIcon,
+  Settings as SettingsIcon,
+  ViewColumn as ViewColumnIcon,
 } from '@mui/icons-material';
 import Checkbox from '@mui/material/Checkbox';
 import { teamService } from '../services/teamService';
@@ -79,6 +82,7 @@ const TeamManagementPage: React.FC = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openMembersDialog, setOpenMembersDialog] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [columnMenuAnchor, setColumnMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -87,12 +91,28 @@ const TeamManagementPage: React.FC = () => {
     description: '',
     leader_id: null as number | null,
     webhook_url: '',
+    member_ids: [] as number[],
   });
 
   // Member management states
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [availableMembers, setAvailableMembers] = useState<TeamMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+
+  // Column visibility configuration
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    const saved = localStorage.getItem('teamListColumnVisibility');
+    return saved ? JSON.parse(saved) : {
+      checkbox: true,
+      name: true,
+      department: true,
+      leader: true,
+      members: true,
+      memberCount: true,
+      description: true,
+      actions: true,
+    };
+  });
 
   // Check if user can manage teams
   const canManageTeams = user?.role === 'admin' || user?.role === 'bod' || user?.role === 'gm';
@@ -127,15 +147,52 @@ const TeamManagementPage: React.FC = () => {
     }
   };
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = async () => {
+    const defaultDeptId = departments[0]?.id || 0;
+
+    // Get GM of the first department as default leader
+    let defaultLeaderId = null;
+    if (defaultDeptId) {
+      try {
+        const gm = await teamService.getDepartmentGM(defaultDeptId);
+        if (gm) {
+          defaultLeaderId = gm.id;
+        }
+      } catch (err) {
+        console.error('Error fetching default GM:', err);
+      }
+    }
+
     setFormData({
       name: '',
-      department_id: departments[0]?.id || 0,
+      department_id: defaultDeptId,
       description: '',
-      leader_id: null,
+      leader_id: defaultLeaderId,
       webhook_url: '',
+      member_ids: [],
     });
     setOpenCreateDialog(true);
+  };
+
+  // Handle department change and set default leader to GM
+  const handleDepartmentChange = async (deptId: number) => {
+    try {
+      const gm = await teamService.getDepartmentGM(deptId);
+      setFormData({
+        ...formData,
+        department_id: deptId,
+        leader_id: gm ? gm.id : null,
+        member_ids: [], // Reset members when department changes
+      });
+    } catch (err) {
+      console.error('Error fetching department GM:', err);
+      setFormData({
+        ...formData,
+        department_id: deptId,
+        leader_id: null,
+        member_ids: [],
+      });
+    }
   };
 
   const handleOpenEdit = (team: Team) => {
@@ -146,6 +203,7 @@ const TeamManagementPage: React.FC = () => {
       description: team.description || '',
       leader_id: team.leader_id,
       webhook_url: team.webhook_url || '',
+      member_ids: [],
     });
     setOpenEditDialog(true);
   };
@@ -174,6 +232,7 @@ const TeamManagementPage: React.FC = () => {
       await teamService.create({
         ...formData,
         leader_id: formData.leader_id ?? undefined,
+        member_ids: formData.member_ids,
       });
       setSuccess('チームを作成しました');
       setOpenCreateDialog(false);
@@ -301,8 +360,30 @@ const TeamManagementPage: React.FC = () => {
     if (!dept) return [];
     return allUsers.filter(u =>
       u.department === dept.name &&
-      ['user', 'approver', 'onsite_leader'].includes(u.role)
+      ['user', 'approver', 'onsite_leader', 'gm'].includes(u.role)
     );
+  };
+
+  // Get users for member selection (filter by department)
+  const getMemberOptions = () => {
+    const deptId = formData.department_id;
+    const dept = departments.find(d => d.id === deptId);
+    if (!dept) return [];
+    return allUsers.filter(u =>
+      u.department === dept.name &&
+      ['user', 'approver', 'onsite_leader'].includes(u.role) &&
+      u.id !== formData.leader_id // Exclude leader from member list
+    );
+  };
+
+  // Toggle column visibility
+  const toggleColumnVisibility = (column: string) => {
+    const newVisibility = {
+      ...columnVisibility,
+      [column]: !columnVisibility[column],
+    };
+    setColumnVisibility(newVisibility);
+    localStorage.setItem('teamListColumnVisibility', JSON.stringify(newVisibility));
   };
 
   if (loading) {
@@ -335,6 +416,11 @@ const TeamManagementPage: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
+          <Tooltip title="列の表示設定">
+            <IconButton onClick={(e) => setColumnMenuAnchor(e.currentTarget)}>
+              <ViewColumnIcon />
+            </IconButton>
+          </Tooltip>
           {selectedTeamIds.length > 0 && (
             <Button
               variant="outlined"
@@ -355,6 +441,38 @@ const TeamManagementPage: React.FC = () => {
         </Box>
       </Box>
 
+      {/* Column Visibility Menu */}
+      <Menu
+        anchorEl={columnMenuAnchor}
+        open={Boolean(columnMenuAnchor)}
+        onClose={() => setColumnMenuAnchor(null)}
+      >
+        <MenuItem disabled>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            表示する列を選択
+          </Typography>
+        </MenuItem>
+        <Divider />
+        {Object.entries({
+          checkbox: '選択',
+          name: 'チーム名',
+          department: '部署',
+          leader: 'オンサイトリーダー',
+          members: 'メンバー',
+          memberCount: 'メンバー数',
+          description: '説明',
+          actions: '操作',
+        }).map(([key, label]) => (
+          <MenuItem key={key} onClick={() => toggleColumnVisibility(key)}>
+            <Checkbox
+              checked={columnVisibility[key]}
+              size="small"
+            />
+            {label}
+          </MenuItem>
+        ))}
+      </Menu>
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -371,20 +489,23 @@ const TeamManagementPage: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={isAllSelected}
-                  indeterminate={isIndeterminate}
-                  onChange={handleSelectAll}
-                  color="primary"
-                />
-              </TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>チーム名</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>部署</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>リーダー</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>メンバー数</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>説明</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>操作</TableCell>
+              {columnVisibility.checkbox && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={isAllSelected}
+                    indeterminate={isIndeterminate}
+                    onChange={handleSelectAll}
+                    color="primary"
+                  />
+                </TableCell>
+              )}
+              {columnVisibility.name && <TableCell sx={{ fontWeight: 600 }}>チーム名</TableCell>}
+              {columnVisibility.department && <TableCell sx={{ fontWeight: 600 }}>部署</TableCell>}
+              {columnVisibility.leader && <TableCell sx={{ fontWeight: 600 }}>オンサイトリーダー</TableCell>}
+              {columnVisibility.members && <TableCell sx={{ fontWeight: 600 }}>メンバー</TableCell>}
+              {columnVisibility.memberCount && <TableCell sx={{ fontWeight: 600 }}>メンバー数</TableCell>}
+              {columnVisibility.description && <TableCell sx={{ fontWeight: 600 }}>説明</TableCell>}
+              {columnVisibility.actions && <TableCell align="right" sx={{ fontWeight: 600 }}>操作</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -394,58 +515,81 @@ const TeamManagementPage: React.FC = () => {
                 selected={selectedTeamIds.includes(team.id)}
                 hover
               >
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedTeamIds.includes(team.id)}
-                    onChange={() => handleSelectTeam(team.id)}
-                    color="primary"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <GroupIcon color="primary" />
-                    <Typography fontWeight={500}>{team.name}</Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>{team.department_name}</TableCell>
-                <TableCell>
-                  {team.leader_name ? (
-                    <Chip
-                      label={team.leader_name}
-                      size="small"
-                      color="secondary"
+                {columnVisibility.checkbox && (
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedTeamIds.includes(team.id)}
+                      onChange={() => handleSelectTeam(team.id)}
+                      color="primary"
                     />
-                  ) : (
-                    <Typography color="text.secondary" variant="body2">
-                      未設定
+                  </TableCell>
+                )}
+                {columnVisibility.name && (
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <GroupIcon color="primary" />
+                      <Typography fontWeight={500}>{team.name}</Typography>
+                    </Box>
+                  </TableCell>
+                )}
+                {columnVisibility.department && <TableCell>{team.department_name}</TableCell>}
+                {columnVisibility.leader && (
+                  <TableCell>
+                    {team.leader_name ? (
+                      <Chip
+                        label={team.leader_name}
+                        size="small"
+                        color="secondary"
+                      />
+                    ) : (
+                      <Typography color="text.secondary" variant="body2">
+                        未設定
+                      </Typography>
+                    )}
+                  </TableCell>
+                )}
+                {columnVisibility.members && (
+                  <TableCell>
+                    <Button
+                      size="small"
+                      startIcon={<GroupIcon />}
+                      onClick={() => handleOpenMembers(team)}
+                    >
+                      表示 ({team.member_count}名)
+                    </Button>
+                  </TableCell>
+                )}
+                {columnVisibility.memberCount && (
+                  <TableCell>
+                    <Chip label={`${team.member_count}名`} size="small" />
+                  </TableCell>
+                )}
+                {columnVisibility.description && (
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                      {team.description || '-'}
                     </Typography>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Chip label={`${team.member_count}名`} size="small" />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
-                    {team.description || '-'}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip title={t('common:tooltips.manageMembers')}>
-                    <IconButton onClick={() => handleOpenMembers(team)} color="primary">
-                      <PersonAddIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('common:tooltips.edit')}>
-                    <IconButton onClick={() => handleOpenEdit(team)} color="primary">
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('common:tooltips.delete')}>
-                    <IconButton onClick={() => handleDelete(team)} color="error">
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
+                  </TableCell>
+                )}
+                {columnVisibility.actions && (
+                  <TableCell align="right">
+                    <Tooltip title={t('common:tooltips.manageMembers')}>
+                      <IconButton onClick={() => handleOpenMembers(team)} color="primary">
+                        <PersonAddIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t('common:tooltips.edit')}>
+                      <IconButton onClick={() => handleOpenEdit(team)} color="primary">
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t('common:tooltips.delete')}>
+                      <IconButton onClick={() => handleDelete(team)} color="error">
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
             {teams.length === 0 && (
@@ -462,7 +606,7 @@ const TeamManagementPage: React.FC = () => {
       </TableContainer>
 
       {/* Create Team Dialog */}
-      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>新規チーム作成</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
@@ -478,7 +622,7 @@ const TeamManagementPage: React.FC = () => {
               <Select
                 value={formData.department_id}
                 label="部署"
-                onChange={(e) => setFormData({ ...formData, department_id: e.target.value as number, leader_id: null })}
+                onChange={(e) => handleDepartmentChange(e.target.value as number)}
               >
                 {departments.map((dept) => (
                   <MenuItem key={dept.id} value={dept.id}>
@@ -493,7 +637,21 @@ const TeamManagementPage: React.FC = () => {
               value={getLeaderOptions().find(u => u.id === formData.leader_id) || null}
               onChange={(_, newValue) => setFormData({ ...formData, leader_id: newValue?.id || null })}
               renderInput={(params) => (
-                <TextField {...params} label="オンサイトリーダー（任意）" />
+                <TextField
+                  {...params}
+                  label="オンサイトリーダー"
+                  helperText="デフォルトで部署のGMが選択されます。変更可能です。"
+                />
+              )}
+            />
+            <Autocomplete
+              multiple
+              options={getMemberOptions()}
+              getOptionLabel={(option) => `${option.name} (${option.employee_id})`}
+              value={getMemberOptions().filter(u => formData.member_ids.includes(u.id))}
+              onChange={(_, newValue) => setFormData({ ...formData, member_ids: newValue.map(v => v.id) })}
+              renderInput={(params) => (
+                <TextField {...params} label="メンバー（任意）" helperText="チーム作成時にメンバーを追加できます" />
               )}
             />
             <TextField

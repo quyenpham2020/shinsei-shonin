@@ -50,6 +50,10 @@ import {
   BarChart as BarChartIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  History as HistoryIcon,
+  Forum as ForumIcon,
+  WorkOutline as WorkOutlineIcon,
+  EmojiObjects as EmojiObjectsIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { getSystemById, SystemConfig } from '../config/systems';
@@ -82,6 +86,12 @@ const getMenuItems = (systemId: string, basePath: string, t: (key: string) => st
       return [
         { text: t('common:nav.weeklyReport'), icon: <AssessmentIcon />, path: basePath },
       ];
+    case 'newsfeed':
+      return [
+        { text: 'すべて', icon: <ForumIcon />, path: basePath },
+        { text: 'ノウハウ', icon: <WorkOutlineIcon />, path: basePath + '/knowhow' },
+        { text: 'ヒント', icon: <EmojiObjectsIcon />, path: basePath + '/tips' },
+      ];
     case 'master-management':
       return [
         { text: t('common:nav.userManagement'), icon: <PeopleIcon />, path: basePath },
@@ -94,6 +104,7 @@ const getMenuItems = (systemId: string, basePath: string, t: (key: string) => st
         { text: t('common:nav.revenueStats'), icon: <BarChartIcon />, path: basePath + '/revenue-stats' },
         { text: t('common:nav.feedbackManagement'), icon: <FeedbackIcon />, path: basePath + '/feedback' },
         { text: t('common:nav.systemSettings'), icon: <SettingsIcon />, path: basePath + '/settings' },
+        { text: '監査ログ', icon: <HistoryIcon />, path: basePath + '/audit-logs' },
       ];
     default:
       return [];

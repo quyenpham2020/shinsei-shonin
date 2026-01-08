@@ -101,15 +101,18 @@ export const updateDepartment = async (req: AuthRequest, res: Response): Promise
     const { id } = req.params;
     const { code, name, description } = req.body;
 
-    // 部署の存在確認
-    const existingDepartment = await getOne<{ id: number }>(`SELECT id FROM departments WHERE id = $1`, [Number(id)]);
+    // 部署の存在確認と現在の情報取得
+    const existingDepartment = await getOne<{ id: number; name: string; code: string }>(
+      `SELECT id, name, code FROM departments WHERE id = $1`,
+      [Number(id)]
+    );
     if (!existingDepartment) {
       res.status(404).json({ message: '部署が見つかりません' });
       return;
     }
 
     // 部署コードの重複チェック（自分以外）
-    if (code) {
+    if (code && code !== existingDepartment.code) {
       const existingByCode = await getOne<{ id: number }>(
         `SELECT id FROM departments WHERE code = $1 AND id != $2`,
         [code, Number(id)]
@@ -120,6 +123,22 @@ export const updateDepartment = async (req: AuthRequest, res: Response): Promise
       }
     }
 
+    // 部署名の重複チェック（自分以外）
+    if (name && name !== existingDepartment.name) {
+      const existingByName = await getOne<{ id: number }>(
+        `SELECT id FROM departments WHERE name = $1 AND id != $2`,
+        [name, Number(id)]
+      );
+      if (existingByName) {
+        res.status(400).json({ message: 'この部署名は既に使用されています' });
+        return;
+      }
+    }
+
+    // 部署名が変更される場合、古い名前を保存
+    const oldName = existingDepartment.name;
+    const newName = name || oldName;
+
     // 部署更新
     await runQuery(`
       UPDATE departments
@@ -128,6 +147,45 @@ export const updateDepartment = async (req: AuthRequest, res: Response): Promise
           description = COALESCE($3, description)
       WHERE id = $4
     `, [code || null, name || null, description !== undefined ? description : null, Number(id)]);
+
+    // CASCADE UPDATE: 部署名が変更された場合、関連するユーザー情報も更新
+    if (name && name !== oldName) {
+      // 完全一致で更新
+      const exactMatchResult = await runQuery(`
+        UPDATE users SET department = $1 WHERE department = $2
+      `, [newName, oldName]);
+
+      console.log(`[CASCADE UPDATE] Department name changed: "${oldName}" → "${newName}"`);
+      console.log(`[CASCADE UPDATE] Exact match: Updated ${exactMatchResult.rowCount} user records`);
+
+      // 完全一致で更新されたユーザーが0件の場合、類似名で検索
+      if (exactMatchResult.rowCount === 0) {
+        // スペースや大文字小文字の違いを許容して検索
+        const similarUsers = await getAll<{ id: number; employee_id: string; department: string }>(
+          `SELECT id, employee_id, department FROM users
+           WHERE TRIM(LOWER(department)) = TRIM(LOWER($1))`,
+          [oldName]
+        );
+
+        if (similarUsers.length > 0) {
+          console.warn(`[CASCADE UPDATE] ⚠️  WARNING: Found ${similarUsers.length} users with similar department names (case/space differences):`);
+          similarUsers.forEach(u => {
+            console.warn(`  - User ${u.employee_id}: department = "${u.department}" (should be "${oldName}")`);
+          });
+
+          // 類似名も更新
+          const fuzzyUpdateResult = await runQuery(`
+            UPDATE users SET department = $1
+            WHERE TRIM(LOWER(department)) = TRIM(LOWER($2))
+          `, [newName, oldName]);
+
+          console.log(`[CASCADE UPDATE] Fuzzy match: Updated ${fuzzyUpdateResult.rowCount} user records with similar names`);
+        } else {
+          console.warn(`[CASCADE UPDATE] ⚠️  WARNING: No users found with department "${oldName}". No records updated.`);
+          console.warn(`[CASCADE UPDATE] This might indicate data inconsistency. Please check user departments manually.`);
+        }
+      }
+    }
 
     const updatedDepartment = await getOne<Department>(`
       SELECT id, code, name, description, created_at

@@ -124,7 +124,7 @@ export const getTeamMembers = async (req: Request, res: Response) => {
 export const createTeam = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { name, description, leader_id } = req.body;
+    const { name, description, leader_id, webhook_url, member_ids } = req.body;
 
     // Get actor's permission info
     const actor = await getOne<UserPermissionInfo>(`
@@ -137,25 +137,39 @@ export const createTeam = async (req: Request, res: Response) => {
     }
 
     const result = await runQuery(`
-      INSERT INTO teams (name, description, leader_id)
-      VALUES ($1, $2, $3) RETURNING id
-    `, [name, description || null, leader_id || null]);
+      INSERT INTO teams (name, description, leader_id, webhook_url)
+      VALUES ($1, $2, $3, $4) RETURNING id
+    `, [name, description || null, leader_id || null, webhook_url || null]);
+
+    const teamId = result.rows[0].id;
 
     // If leader is specified, update their role to onsite_leader and assign to team
     if (leader_id) {
       await runQuery(`
         UPDATE users SET role = 'onsite_leader', team_id = $1
         WHERE id = $2
-      `, [result.rows[0].id, leader_id]);
+      `, [teamId, leader_id]);
+    }
+
+    // Add members to team if specified
+    if (member_ids && Array.isArray(member_ids) && member_ids.length > 0) {
+      for (const memberId of member_ids) {
+        // Skip if member is already the leader (already added above)
+        if (memberId !== leader_id) {
+          await runQuery(`
+            UPDATE users SET team_id = $1 WHERE id = $2
+          `, [teamId, memberId]);
+        }
+      }
     }
 
     const newTeam = await getOne<TeamWithDetails>(`
       SELECT t.*, u.name as leader_name,
-             0 as member_count
+             (SELECT COUNT(*) FROM users WHERE team_id = t.id) as member_count
       FROM teams t
       LEFT JOIN users u ON t.leader_id = u.id
       WHERE t.id = $1
-    `, [result.rows[0].id]);
+    `, [teamId]);
 
     res.status(201).json(newTeam);
   } catch (error) {
@@ -430,5 +444,24 @@ export const getAvailableMembers = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching available members:', error);
     res.status(500).json({ error: 'Failed to fetch available members' });
+  }
+};
+
+// Get department GM (for default leader selection)
+export const getDepartmentGM = async (req: Request, res: Response) => {
+  try {
+    const { departmentId } = req.params;
+
+    const gm = await getOne<TeamMember>(`
+      SELECT u.id, u.employee_id, u.name, u.email, u.role, u.department
+      FROM users u
+      WHERE u.department_id = $1 AND u.role = 'gm'
+      LIMIT 1
+    `, [parseInt(departmentId)]);
+
+    res.json(gm || null);
+  } catch (error) {
+    console.error('Error fetching department GM:', error);
+    res.status(500).json({ error: 'Failed to fetch department GM' });
   }
 };

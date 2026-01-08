@@ -131,14 +131,27 @@ export async function getUsersUnderAuthority(actorId: number): Promise<number[]>
     return users.map(u => u.id);
   }
 
-  // Onsite Leader sees their team members
-  if (actor.role === 'onsite_leader' && actor.team_id) {
+  // Onsite Leader sees members of ALL teams they lead
+  if (actor.role === 'onsite_leader') {
+    // Get all teams where this user is the leader
+    const teams = await getAll<{ id: number }>(`
+      SELECT id FROM teams WHERE leader_id = $1 AND is_active = true
+    `, [actorId]);
+
+    if (teams.length === 0) {
+      return [];
+    }
+
+    // Get all members in those teams
+    const teamIds = teams.map(t => t.id);
+    const placeholders = teamIds.map((_, i) => `$${i + 1}`).join(',');
+
     const users = await getAll<{ id: number }>(`
       SELECT id FROM users
-      WHERE team_id = $1
-      AND role IN ('user', 'approver')
-      AND id != $2
-    `, [actor.team_id, actorId]);
+      WHERE team_id IN (${placeholders})
+      AND id != $${teamIds.length + 1}
+    `, [...teamIds, actorId]);
+
     return users.map(u => u.id);
   }
 

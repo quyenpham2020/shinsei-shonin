@@ -48,6 +48,7 @@ import {
   UnfoldMore as ExpandAllIcon,
   UnfoldLess as CollapseAllIcon,
   DeleteSweep as BulkDeleteIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { userService, CreateUserData, UpdateUserData } from '../services/userService';
@@ -151,10 +152,59 @@ const UserListPage: React.FC = () => {
     fetchDepartments();
   }, []);
 
+  // ページが表示された時に最新データを取得（部署名変更などに対応）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // ページが表示されたら最新データを取得
+        fetchUsers();
+        fetchDepartments();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // 定期的にデータを更新（部署変更のリアルタイム反映）
+  useEffect(() => {
+    // 15秒ごとに最新データを取得（ページが表示されている時のみ）
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isLoading && !isSubmitting) {
+        // サイレント更新（ローディング表示なし）
+        const fetchSilently = async () => {
+          try {
+            const [usersData, deptsData] = await Promise.all([
+              userService.getAll(),
+              departmentService.getAll(),
+            ]);
+            setUsers(usersData);
+            setDepartments(deptsData);
+          } catch (err) {
+            // サイレントエラー（エラー表示しない）
+            console.debug('Silent refresh failed:', err);
+          }
+        };
+        fetchSilently();
+      }
+    }, 15000); // 15秒ごと
+
+    return () => clearInterval(pollInterval);
+  }, [isLoading, isSubmitting]);
+
   const handleAccordionChange = (dept: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
     setExpandedDepts(prev =>
       isExpanded ? [...prev, dept] : prev.filter(d => d !== dept)
     );
+  };
+
+  const handleRefresh = () => {
+    fetchUsers();
+    fetchDepartments();
+    setSuccessMessage('データを更新しました');
   };
 
   const handleCreateOpen = () => {
@@ -461,6 +511,11 @@ const UserListPage: React.FC = () => {
             </Button>
           )}
           <Box sx={{ flex: 1 }} />
+          <Tooltip title="最新データを取得">
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh}>
+              更新
+            </Button>
+          </Tooltip>
           <input
             ref={fileInputRef}
             type="file"

@@ -6,6 +6,7 @@ import {
   Settings as SettingsIcon,
   BarChart as BarChartIcon,
   AdminPanelSettings as AdminPanelSettingsIcon,
+  Forum as ForumIcon,
 } from '@mui/icons-material';
 import { SvgIconComponent } from '@mui/icons-material';
 
@@ -41,6 +42,16 @@ export const systems: SystemConfig[] = [
     path: '/weekly-reports',
     icon: AssessmentIcon,
     color: '#2e7d32',
+    enabled: true,
+  },
+  {
+    id: 'newsfeed',
+    name: 'ニュースフィード',
+    nameEn: 'Newsfeed System',
+    description: '社内の情報、ノウハウ、ヒントを共有します',
+    path: '/newsfeed',
+    icon: ForumIcon,
+    color: '#f57c00',
     enabled: true,
   },
   {

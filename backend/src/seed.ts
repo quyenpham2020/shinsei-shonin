@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { initDatabase, runQuery, saveDatabase } from './config/database';
+import { initDatabase, runQuery } from './config/database';
 
 async function seed() {
   console.log('Initializing database...');
@@ -125,7 +125,6 @@ async function seed() {
   }
 
   console.log('Comments created');
-  saveDatabase();
   console.log('Seeding completed!');
 }
 

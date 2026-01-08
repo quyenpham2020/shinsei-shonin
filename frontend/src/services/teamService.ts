@@ -21,6 +21,7 @@ export const teamService = {
     description?: string;
     leader_id?: number;
     webhook_url?: string;
+    member_ids?: number[];
   }): Promise<Team> {
     const response = await api.post('/teams', data);
     return response.data;
@@ -68,6 +69,12 @@ export const teamService = {
   // Remove member from team
   async removeMember(teamId: number, userId: number): Promise<void> {
     await api.delete(`/teams/${teamId}/members/${userId}`);
+  },
+
+  // Get department GM for default leader
+  async getDepartmentGM(departmentId: number): Promise<TeamMember | null> {
+    const response = await api.get(`/teams/department/${departmentId}/gm`);
+    return response.data;
   },
 };
 
